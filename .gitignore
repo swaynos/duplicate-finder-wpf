@@ -1,0 +1,17 @@
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/DuplicateFinder/bin
+/DuplicateFinder/obj
+/DuplicateFinder.Tests/bin
+/DuplicateFinder.Tests/bin
+/DuplicateFinder.Tests/obj
+/FileHashRepository/bin
+/FileHashRepository/obj
+/FileHashRepository.Tests/bin
+/FileHashRepository.Tests/obj
+/FileHashRepository/FileHash_log.ldf
+/packages
+/.vs
+
