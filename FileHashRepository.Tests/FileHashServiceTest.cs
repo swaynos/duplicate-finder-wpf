@@ -18,11 +18,8 @@ namespace FileHashRepository.Tests
         public async Task InsertScannedFileAsync_InsertsScannedFile()
         {
             // ARRANGE
-            var mockSet = new Mock<DbSet<ScannedFile>>();
-
-            var mockContext = new Mock<FileHashEntities>();
-            mockContext.Setup(t => t.ScannedFiles).Returns(mockSet.Object);
-
+            var mockSet = GetMockScannedFiles(0);
+            var mockContext = GetMockContext(mockSet.Object);
             FileHashService service = new FileHashService(mockContext.Object);
 
             // ACT
@@ -36,6 +33,29 @@ namespace FileHashRepository.Tests
             // ASSERT
             mockSet.Verify(t => t.Add(It.IsAny<ScannedFile>()), Times.Once());
             mockContext.Verify(t => t.SaveChangesAsync(), Times.Once());
+        }
+
+        [TestMethod]
+        public async Task InsertScannedFileAsync_IgnoresDuplicateFile()
+        {
+            // ARRANGE
+            var mockSet = GetMockScannedFiles(1);
+            var mockContext = GetMockContext(mockSet.Object);
+            var mockScannedFile = new ScannedFile()
+            {
+                Name = mockSet.Object.First().Name,
+                Path = mockSet.Object.First().Path,
+                Hash = mockSet.Object.First().Hash,
+                Id = 2
+            };
+            FileHashService service = new FileHashService(mockContext.Object);
+
+            // ACT
+            await service.InsertScannedFileAsync(mockScannedFile);
+
+            // ASSERT
+            mockSet.Verify(t => t.Add(It.IsAny<ScannedFile>()), Times.Never());
+            mockContext.Verify(t => t.SaveChangesAsync(), Times.Never());
         }
 
         [TestMethod]
@@ -324,6 +344,48 @@ namespace FileHashRepository.Tests
             Assert.AreEqual(4, results.Count, "The number of found scanned files does not match what was expected");
         }
         
+        [TestMethod]
+        public async Task InsertScannedLocationAsync_InsertsScannedLocation()
+        {
+            // ARRANGE
+            var mockScannedFiles = GetMockScannedFiles(0);
+            var mockScannedLocations = GetMockScannedLocations(0);
+            var mockContext = GetMockContext(mockScannedFiles.Object, mockScannedLocations.Object);
+            FileHashService service = new FileHashService(mockContext.Object);
+
+            // ACT
+            await service.InsertScannedLocationAsync(new ScannedLocation()
+            {
+                Path = "bar",
+                Id = 1
+            });
+
+            // ASSERT
+            mockScannedLocations.Verify(t => t.Add(It.IsAny<ScannedLocation>()), Times.Once());
+            mockContext.Verify(t => t.SaveChangesAsync(), Times.Once());
+        }
+
+        [TestMethod]
+        public async Task InsertScannedLocationAsync_IgnoresDuplicateScannedLocation()
+        {
+            // ARRANGE
+            var mockScannedFiles = GetMockScannedFiles(0);
+            var mockScannedLocations = GetMockScannedLocations(1, "bar");
+            var mockContext = GetMockContext(mockScannedFiles.Object, mockScannedLocations.Object);
+            FileHashService service = new FileHashService(mockContext.Object);
+
+            // ACT
+            await service.InsertScannedLocationAsync(new ScannedLocation()
+            {
+                Path = "bar",
+                Id = 2
+            });
+
+            // ASSERT
+            mockScannedLocations.Verify(t => t.Add(It.IsAny<ScannedLocation>()), Times.Never());
+            mockContext.Verify(t => t.SaveChangesAsync(), Times.Never());
+        }
+
         [TestMethod]
         public async Task ListScannedFilePathsAsync_ReturnsSingleFilePath()
         {

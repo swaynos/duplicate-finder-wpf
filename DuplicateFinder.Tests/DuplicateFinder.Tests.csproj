@@ -92,7 +92,6 @@
     <Compile Include="ScanningProgressTest.cs" />
     <Compile Include="ScanningControllerTest.cs" />
     <Compile Include="ResultPageModelTest.cs" />
-    <Compile Include="ScannedFileHashComparerTest.cs" />
     <Compile Include="RecycleFileTest.cs" />
   </ItemGroup>
   <ItemGroup>

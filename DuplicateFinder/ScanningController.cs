@@ -1,12 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 using System.Windows.Controls.Primitives;
 using DuplicateFinder.Models;
 using DuplicateFinder.Utilities;
 using FileHashRepository;
+using FileHashRepository.Utilities;
 using NLog;
 
 namespace DuplicateFinder

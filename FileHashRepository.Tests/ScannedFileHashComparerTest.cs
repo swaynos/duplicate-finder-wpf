@@ -1,8 +1,7 @@
-﻿using System;
-using DuplicateFinder.Utilities;
+﻿using FileHashRepository.Utilities;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
-namespace DuplicateFinder.Tests
+namespace FileHashRepository.Tests
 {
     [TestClass]
     public class ScannedFileHashComparerTest

@@ -29,8 +29,11 @@ namespace FileHashRepository
         /// <param name="scannedFile">The ScannedFile to insert</param>
         public async Task InsertScannedFileAsync(ScannedFile scannedFile)
         {
-            _context.ScannedFiles.Add(scannedFile);
-            await _context.SaveChangesAsync();
+            if(!await ScannedFilesContains(scannedFile))
+            {
+                _context.ScannedFiles.Add(scannedFile);
+                await _context.SaveChangesAsync();
+            }
         }
 
         /// <summary>
@@ -39,8 +42,11 @@ namespace FileHashRepository
         /// <param name="scannedLocation">The ScannedLocation to insert</param>
         public async Task InsertScannedLocationAsync(ScannedLocation scannedLocation)
         {
-            _context.ScannedLocations.Add(scannedLocation);
-            await _context.SaveChangesAsync();
+            if (!await ScannedLocationsContains(scannedLocation))
+            {
+                _context.ScannedLocations.Add(scannedLocation);
+                await _context.SaveChangesAsync();
+            }
         }
 
         /// <summary>
@@ -144,6 +150,46 @@ namespace FileHashRepository
                     .Where(t => t.Count() > 1)
                     .SelectMany(group => group);
             return await scannedFiles.ToListAsync();
+        }
+
+        /// <summary>
+        /// Iterate through the ScannedFiles to determine if there is an equal ScannedFile
+        /// </summary>
+        /// <param name="scannedFile">The ScannedFile to compare against the ScannedFiles in the dbContext</param>
+        /// <returns>true/false if the ScannedFile is contained in the dbContext</returns>
+        private async Task<bool> ScannedFilesContains(ScannedFile scannedFile)
+        {
+            Task<bool> task = Task.Run(() =>
+            {
+                bool contains = false;
+                foreach (ScannedFile contextScannedFile in _context.ScannedFiles)
+                {
+                    contains |= contextScannedFile.Equals(scannedFile);
+                }
+                return contains;
+            });
+            
+            return await task;
+        }
+
+        /// <summary>
+        /// Iterate through the ScannedFiles to determine if there is an equal ScannedFile
+        /// </summary>
+        /// <param name="scannedFile">The ScannedFile to compare against the ScannedFiles in the dbContext</param>
+        /// <returns>true/false if the ScannedFile is contained in the dbContext</returns>
+        private async Task<bool> ScannedLocationsContains(ScannedLocation scannedLocation)
+        {
+            Task<bool> task = Task.Run(() =>
+            {
+                bool contains = false;
+                foreach (ScannedLocation contextScannedLocation in _context.ScannedLocations)
+                {
+                    contains |= contextScannedLocation.Equals(scannedLocation);
+                }
+                return contains;
+            });
+
+            return await task;
         }
     }
 }

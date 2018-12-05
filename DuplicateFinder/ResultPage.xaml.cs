@@ -32,6 +32,16 @@ namespace DuplicateFinder
         {
         }
 
+        public void PreviewButton_Click(object sender, RoutedEventArgs e)
+        {
+            foreach (string file in DuplicatesListBox.SelectedItems)
+            {
+                var process = new System.Diagnostics.Process();
+                process.StartInfo.FileName = file;
+                process.Start();
+            }
+        }
+
         public async void RecycleButton_Click(object sender, RoutedEventArgs e)
         {
             bool suppressRecycleFileDialog = Properties.Settings.Default.SuppressRecycleFileDialog;
@@ -54,9 +64,17 @@ namespace DuplicateFinder
 
         public void DuplicatesListBox_Changed(object sender, RoutedEventArgs e)
         {
-            if (!RecycleButton.IsEnabled && DuplicatesListBox.Items.Count > 0)
+            bool isCountValid = DuplicatesListBox.Items.Count > 0;
+            if (isCountValid)
             {
-                RecycleButton.IsEnabled = true;
+                if (!RecycleButton.IsEnabled)
+                {
+                    RecycleButton.IsEnabled = true;
+                }
+                if (!PreviewButton.IsEnabled)
+                {
+                    PreviewButton.IsEnabled = true;
+                }
             }
         }
 

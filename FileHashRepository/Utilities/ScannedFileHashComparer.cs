@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
-namespace DuplicateFinder.Utilities
+namespace FileHashRepository.Utilities
 {
     /// <summary>
     /// QualityComparer designed to handle comparing the Hash of two ScannedFile objects
     /// </summary>
-    class ScannedFileHashComparer : EqualityComparer<byte[]>
+    public class ScannedFileHashComparer : EqualityComparer<byte[]>
     {
         public override bool Equals(byte[] first, byte[] second)
         {

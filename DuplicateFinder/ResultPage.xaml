@@ -51,6 +51,8 @@
             <Grid.RowDefinitions>
                 <RowDefinition />
             </Grid.RowDefinitions>
+            <Button x:Name="PreviewButton" Grid.Column="0" Grid.Row="0" Width="75" Height="25" Margin="0,5,0,5"
+                    HorizontalAlignment="Center" Click="PreviewButton_Click" IsEnabled="False">Preview</Button>
             <Button x:Name="RecycleButton" Grid.Column="2" Grid.Row="0" Width="75" Height="25" Margin="0,5,0,5"
                     HorizontalAlignment="Center" Click="RecycleButton_Click" IsEnabled="False">Recycle</Button>
         </Grid>

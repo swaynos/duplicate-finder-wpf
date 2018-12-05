@@ -91,7 +91,6 @@
     <Compile Include="IScanningController.cs" />
     <Compile Include="Models\HomePageModel.cs" />
     <Compile Include="Models\ResultPageModel.cs" />
-    <Compile Include="Utilities\ScannedFileHashComparer.cs" />
     <Compile Include="ScanningController.cs" />
     <Compile Include="Utilities\ScanningProgress.cs" />
     <Compile Include="ScanPage.xaml.cs">
