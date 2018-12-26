@@ -1,5 +1,7 @@
-﻿using NLog;
+﻿using DuplicateFinder.Framework;
+using NLog;
 using System.Windows;
+using System.Windows.Navigation;
 using System.Windows.Threading;
 
 namespace DuplicateFinder
@@ -18,7 +20,18 @@ namespace DuplicateFinder
         }
 
         public App() : this(LogManager.GetCurrentClassLogger())
-        {   
+        {
+        }
+
+
+        // Maintain a reference to the NavigationService to navigate to pages outside of the code behind
+        internal static IPageNavigationService NavigationService { get; set; }
+
+        internal void Application_Startup(object sender, StartupEventArgs e)
+        {
+            MainWindow main = new MainWindow();
+            NavigationService = new PageNavigationService(main.NavigationService);
+            main.Show();
         }
 
         /// <summary>

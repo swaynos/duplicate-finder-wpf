@@ -65,6 +65,9 @@
     <Reference Include="System.ServiceModel" />
     <Reference Include="System.Transactions" />
     <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Windows.Interactivity, Version=4.5.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
+      <HintPath>..\packages\Expression.Blend.Sdk.1.0.2\lib\net45\System.Windows.Interactivity.dll</HintPath>
+    </Reference>
     <Reference Include="System.Xml" />
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Core" />
@@ -83,24 +86,33 @@
       <Generator>MSBuild:Compile</Generator>
       <SubType>Designer</SubType>
     </ApplicationDefinition>
+    <Compile Include="Framework\IPageNavigationService.cs" />
+    <Compile Include="Framework\PageNavigationService.cs" />
+    <Compile Include="Models\ScanLocation.cs" />
+    <Compile Include="Framework\AsyncCommandBase.cs" />
     <Compile Include="Utilities\FileSystemWrapper.cs" />
+    <Compile Include="Framework\IAsyncCommand.cs" />
     <Compile Include="Utilities\IFileSystemWrapper.cs" />
+    <Compile Include="Framework\NotifyTaskCompletion.cs" />
     <Compile Include="Utilities\RecycleFile.cs" />
     <Compile Include="Utilities\FolderBrowserDialogWrapper.cs" />
     <Compile Include="Utilities\IRecycleFile.cs" />
-    <Compile Include="IScanningController.cs" />
-    <Compile Include="Models\HomePageModel.cs" />
     <Compile Include="Models\ResultPageModel.cs" />
-    <Compile Include="ScanningController.cs" />
     <Compile Include="Utilities\ScanningProgress.cs" />
-    <Compile Include="ScanPage.xaml.cs">
+    <Compile Include="Framework\AsyncCommand.cs" />
+    <Compile Include="Framework\DelegateCommand.cs" />
+    <Compile Include="Views\ScanPage.xaml.cs">
       <DependentUpon>ScanPage.xaml</DependentUpon>
     </Compile>
-    <Page Include="HomePage.xaml">
+    <Compile Include="Framework\BindableBase.cs" />
+    <Compile Include="ViewModels\HomePageViewModel.cs" />
+    <Compile Include="ViewModels\ResultPageViewModel.cs" />
+    <Compile Include="ViewModels\ScanPageViewModel.cs" />
+    <Page Include="Views\HomePage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
-    <Page Include="ResultPage.xaml">
+    <Page Include="Views\ResultPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -112,17 +124,17 @@
       <DependentUpon>App.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Compile Include="HomePage.xaml.cs">
+    <Compile Include="Views\HomePage.xaml.cs">
       <DependentUpon>HomePage.xaml</DependentUpon>
     </Compile>
-    <Compile Include="ResultPage.xaml.cs">
+    <Compile Include="Views\ResultPage.xaml.cs">
       <DependentUpon>ResultPage.xaml</DependentUpon>
     </Compile>
     <Compile Include="MainWindow.xaml.cs">
       <DependentUpon>MainWindow.xaml</DependentUpon>
       <SubType>Code</SubType>
     </Compile>
-    <Page Include="ScanPage.xaml">
+    <Page Include="Views\ScanPage.xaml">
       <SubType>Designer</SubType>
       <Generator>MSBuild:Compile</Generator>
     </Page>
@@ -181,5 +193,6 @@
       <Install>false</Install>
     </BootstrapperPackage>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
