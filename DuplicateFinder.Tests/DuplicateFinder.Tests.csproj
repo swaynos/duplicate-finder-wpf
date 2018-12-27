@@ -95,6 +95,7 @@
     <Compile Include="RecycleFileTest.cs" />
     <Compile Include="ViewModels\HomePageViewModelTest.cs" />
     <Compile Include="ViewModels\ResultPageViewModelTest.cs" />
+    <Compile Include="ViewModels\ScanPageViewModelTest.cs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\DuplicateFinder\DuplicateFinder.csproj">

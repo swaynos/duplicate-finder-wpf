@@ -10,6 +10,7 @@ using System;
 using NLog;
 using System.Threading.Tasks;
 using DuplicateFinder.Utilities;
+using FileHashRepository;
 
 namespace DuplicateFinder.ViewModels
 {
@@ -73,7 +74,7 @@ namespace DuplicateFinder.ViewModels
         internal ResultPageViewModel(ILogger logger, IRecycleFile recycleFile)
         {
             _logger = logger;
-            _recycle = AsyncCommand.Create(() => RecycleSelection());
+            _recycle = AsyncCommand.Create(() => RecycleSelectionAsync());
             _preview = DelegateCommand.Create(PreviewSelection, false);
             _recycleFile = recycleFile;
 
@@ -105,7 +106,10 @@ namespace DuplicateFinder.ViewModels
             }
         }
 
-        private async Task RecycleSelection()
+        /// <summary>
+        /// Send the selected files to the recycle bin
+        /// </summary>
+        private async Task RecycleSelectionAsync()
         {
             bool suppressRecycleFileDialog = Properties.Settings.Default.SuppressRecycleFileDialog;
             List<string> recycledItems = new List<string>();
@@ -120,12 +124,45 @@ namespace DuplicateFinder.ViewModels
             }
         }
 
+        /// <summary>
+        /// Handles the logic to enable and disable buttons based on the state of the Model
+        /// </summary>
         private void ToggleButtons()
         {
             if (Duplicates.Count > 0)
             {
                 _preview.IsEnabled = true;
                 _recycle.IsEnabled = true;
+            }
+        }
+
+        /// <summary>
+        /// Takes the scanned files and adds them to the <see cref="Duplicates"/> collection. 
+        /// The ScannedFiles will be sorted by Hash before being added to the ViewModel.
+        /// </summary>
+        /// <param name="scannedFiles">The scanned files to add</param>
+        /// <exception cref="NullReferenceException">Will return a NullReferenceException if <paramref name="scannedFiles"/> is null.</exception>
+        internal void AddScannedFiles(List<ScannedFile> scannedFiles)
+        {
+            if (scannedFiles == null)
+                throw new NullReferenceException();
+
+            byte[] previousHash = null;
+            // ToDo: Split into a seperate function that can be unit tested
+            // ToDo: Order By? Verify that this is being ordered earlier in the stack, and move here.
+            foreach (ScannedFile scannedFile in scannedFiles)
+            {
+                ScanResult scanResult = new ScanResult()
+                {
+                    FilePath = scannedFile.Path,
+                    Hash = scannedFile.Hash,
+                    IsSelected = false
+                };
+                // ToDo: Implement Colors
+                // If the hash is the same as the previous hash use the same color
+                // Else flip the color
+                Duplicates.Add(scanResult);
+                previousHash = scannedFile.Hash;
             }
         }
     }

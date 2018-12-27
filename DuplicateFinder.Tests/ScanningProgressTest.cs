@@ -13,70 +13,90 @@ namespace DuplicateFinder.Tests
         public void Report_UpdatesControlValue()
         {
             // ARRANGE
-            Mock<ProgressBar> control = new Mock<ProgressBar>();
-            ScanningProgress scanningProgress = new ScanningProgress(control.Object);
+            int reported = 0;
+            Action<double> action = (d) =>
+            {
+                reported = (int) d;
+            };
+            ScanningProgress scanningProgress = new ScanningProgress(action);
 
             // ACT
             scanningProgress.Report(69);
 
             // ASSERT
-            Assert.AreEqual(69, control.Object.Value);
+            Assert.AreEqual(69, reported);
         }
 
         [TestMethod]
         public void Report_ValueGreaterThan100Percent_Is100Percent()
         {
             // ARRANGE
-            Mock<ProgressBar> control = new Mock<ProgressBar>();
-            ScanningProgress scanningProgress = new ScanningProgress(control.Object);
+            int reported = 0;
+            Action<double> action = (d) =>
+            {
+                reported = (int)d;
+            };
+            ScanningProgress scanningProgress = new ScanningProgress(action);
 
             // ACT
             scanningProgress.Report(9001);
 
             // ASSERT
-            Assert.AreEqual(100, control.Object.Value);
+            Assert.AreEqual(100, reported);
         }
 
         [TestMethod]
         public void Report_DivisorReducesValue()
         {
             // ARRANGE
-            Mock<ProgressBar> control = new Mock<ProgressBar>();
-            ScanningProgress scanningProgress = new ScanningProgress(control.Object, 0, 2);
+            int reported = 0;
+            Action<double> action = (d) =>
+            {
+                reported = (int)d;
+            };
+            ScanningProgress scanningProgress = new ScanningProgress(action, 0, 2);
 
             // ACT
             scanningProgress.Report(100);
 
             // ASSERT
-            Assert.AreEqual(50, control.Object.Value);
+            Assert.AreEqual(50, reported);
         }
 
         [TestMethod]
         public void Report_AddendAddedToValue()
         {
             // ARRANGE
-            Mock<ProgressBar> control = new Mock<ProgressBar>();
-            ScanningProgress scanningProgress = new ScanningProgress(control.Object, 50, 1);
+            int reported = 0;
+            Action<double> action = (d) =>
+            {
+                reported = (int)d;
+            };
+            ScanningProgress scanningProgress = new ScanningProgress(action, 50, 1);
 
             // ACT
             scanningProgress.Report(1);
 
             // ASSERT
-            Assert.AreEqual(51, control.Object.Value);
+            Assert.AreEqual(51, reported);
         }
 
         [TestMethod]
         public void Report_AddendAddedToDivision()
         {
             // ARRANGE
-            Mock<ProgressBar> control = new Mock<ProgressBar>();
-            ScanningProgress scanningProgress = new ScanningProgress(control.Object, 50, 2);
+            int reported = 0;
+            Action<double> action = (d) =>
+            {
+                reported = (int)d;
+            };
+            ScanningProgress scanningProgress = new ScanningProgress(action, 50, 2);
 
             // ACT
             scanningProgress.Report(100);
 
             // ASSERT
-            Assert.AreEqual(100, control.Object.Value);
+            Assert.AreEqual(100, reported);
         }
 
         [TestMethod]
@@ -84,8 +104,12 @@ namespace DuplicateFinder.Tests
         public void Report_DivisorIsZero_ThrowsException()
         {
             // ARRANGE
-            Mock<ProgressBar> control = new Mock<ProgressBar>();
-            ScanningProgress scanningProgress = new ScanningProgress(control.Object, 0, 0);
+            int reported = 0;
+            Action<double> action = (d) =>
+            {
+                reported = (int)d;
+            };
+            ScanningProgress scanningProgress = new ScanningProgress(action, 0, 0);
 
             // ACT
             scanningProgress.Report(1);

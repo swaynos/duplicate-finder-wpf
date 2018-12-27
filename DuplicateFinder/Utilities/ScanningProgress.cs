@@ -9,13 +9,13 @@ namespace DuplicateFinder.Utilities
 
         public int Addend { get; set; }
 
-        public RangeBase Control { get; private set; }
+        public Action<double> Action { get; set; }
 
-        public ScanningProgress(RangeBase control, int addend = 0, int divisor = 1)
+        public ScanningProgress(Action<double> action, int addend = 0, int divisor = 1)
         {
             Divisor = divisor;
             Addend = addend;
-            Control = control;
+            Action = action;
         }
 
         /// <summary>
@@ -31,8 +31,14 @@ namespace DuplicateFinder.Utilities
                 throw new DivideByZeroException();
             }
 
-            double reportValue = (double) (value / Divisor) + Addend;
-            Control.Value = reportValue;
+            double reportValue = (double)(value / Divisor) + Addend;
+
+            if (reportValue > 100)
+            {
+                reportValue = 100;
+            }
+
+            Action(reportValue);
         }
     }
 }

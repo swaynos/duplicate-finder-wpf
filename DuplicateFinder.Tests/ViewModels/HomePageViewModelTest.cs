@@ -11,6 +11,12 @@ namespace DuplicateFinder.Tests
     [TestClass]
     public class HomePageViewModelTest
     {
+        [TestInitialize]
+        public void TestInitialize()
+        {
+            App.NavigationService = new Mock<IPageNavigationService>().Object;
+        }
+
         [TestMethod]
         public void Add_AddsLocationsToModel()
         {

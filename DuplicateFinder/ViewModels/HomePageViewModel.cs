@@ -2,6 +2,7 @@
 using DuplicateFinder.Models;
 using DuplicateFinder.Utilities;
 using DuplicateFinder.Views;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Windows.Forms;
 using System.Windows.Input;
@@ -41,6 +42,9 @@ namespace DuplicateFinder.ViewModels
 
         public ICommand Scan { get; private set; }
 
+        /// <summary>
+        /// Show a folder browser dialog to allow the user to select a location, and add it to Locations. Any exceptions would be fatal.
+        /// </summary>
         private void AddLocation()
         {
             using (CommonDialog dialog = _folderBrowserDialog.GetNewFolderBrowserDialog())
@@ -59,6 +63,9 @@ namespace DuplicateFinder.ViewModels
             ToggleButtons();
         }
 
+        /// <summary>
+        /// Remove the selected location from Locations
+        /// </summary>
         private void RemoveLocation()
         {
             if (SelectedLocation != null)
@@ -68,11 +75,14 @@ namespace DuplicateFinder.ViewModels
             ToggleButtons();
         }
 
+        /// <summary>
+        /// Transitions to the ScanPage
+        /// </summary>
         private void ShowScanPage()
         {
             ScanPage scanPage = new ScanPage();
             ScanPageViewModel scanPageViewModel = scanPage.DataContext as ScanPageViewModel;
-            scanPageViewModel.Locations = Locations;
+            scanPageViewModel.Locations = new List<ScanLocation>(Locations);
             App.NavigationService.Navigate(scanPage);
         }
 
