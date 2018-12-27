@@ -30,12 +30,15 @@ namespace DuplicateFinder.ViewModels
             this.Remove = _remove;
             this.Scan = _scan;
         }
+
         public HomePageViewModel() : this(new FolderBrowserDialogWrapper())
         {
         }
 
         public ICommand Add { get; private set; }
+
         public ICommand Remove { get; private set; }
+
         public ICommand Scan { get; private set; }
 
         private void AddLocation()

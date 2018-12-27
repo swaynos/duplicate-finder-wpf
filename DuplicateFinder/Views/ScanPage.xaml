@@ -16,7 +16,7 @@
     <Grid>
         <i:Interaction.Triggers>
             <i:EventTrigger EventName="Loaded">
-                <i:InvokeCommandAction Command="{Binding LoadCommand}"/>
+                <i:InvokeCommandAction Command="{Binding Loaded}"/>
             </i:EventTrigger>
         </i:Interaction.Triggers>
         <ProgressBar Value="{Binding Progress}" HorizontalAlignment="Center" Height="25" VerticalAlignment="Center" Width="300"/>

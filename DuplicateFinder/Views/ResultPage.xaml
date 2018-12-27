@@ -2,12 +2,18 @@
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+      xmlns:i="clr-namespace:System.Windows.Interactivity;assembly=System.Windows.Interactivity"
+      xmlns:scm="clr-namespace:System.ComponentModel;assembly=Wind‌​owsBase" 
       xmlns:ViewModels="clr-namespace:DuplicateFinder.ViewModels" 
       mc:Ignorable="d" 
       d:DesignHeight="300" d:DesignWidth="300"
       Title="Duplicate Finder - Results">
 
+    <Page.DataContext>
+        <ViewModels:ResultPageViewModel/>
+    </Page.DataContext>
+    
     <Grid Margin="0">
         <Grid.ColumnDefinitions>
             <ColumnDefinition />
@@ -35,11 +41,34 @@
             <Label x:Name="FilterLabel" Grid.Column="0" Grid.Row="0"  Height="25"  Margin="0,5" 
                    HorizontalAlignment="Center">Filter</Label>
             <TextBox x:Name="FilterBox" Grid.Column="1" Grid.Row="0" Margin="0,5,15,5"
-                    HorizontalContentAlignment="Stretch" TextChanged="FilterBox_TextChanged"></TextBox>
+                    HorizontalContentAlignment="Stretch" Text="{Binding SearchFilter, UpdateSourceTrigger=PropertyChanged}"></TextBox>
+
+            <!--TextChanged="{Binding FilterChanged}"-->
         </Grid>
 
         <ListBox Name="DuplicatesListBox" Grid.Column="0" Grid.Row="2" 
-                 SelectionMode="Extended" Focusable="true"/>
+                 ItemsSource="{Binding DuplicatesViewSource.View}"
+                 SelectionMode="Extended" Focusable="true">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <TextBlock Text="{Binding FilePath}"/>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+            <ListBox.ItemContainerStyle>
+                <Style TargetType="{x:Type ListBoxItem}">
+                    <Setter Property="IsSelected" Value="{Binding Mode=TwoWay, Path=IsSelected}"/>
+                    <Setter Property="Background" Value="{Binding Path=Background}"/>
+                </Style>
+            </ListBox.ItemContainerStyle>
+            <i:Interaction.Triggers>
+                <i:EventTrigger EventName="SelectionChanged">
+                    <i:InvokeCommandAction Command="{Binding SelectedItemsChangedCommand}"/>
+                </i:EventTrigger>
+                <i:EventTrigger EventName="Loaded">
+                    <i:InvokeCommandAction Command="{Binding Loaded}"/>
+                </i:EventTrigger>
+            </i:Interaction.Triggers>
+        </ListBox>
 
         <!-- Inner grid-->
         <Grid Grid.Row="3">
@@ -52,9 +81,9 @@
                 <RowDefinition />
             </Grid.RowDefinitions>
             <Button x:Name="PreviewButton" Grid.Column="0" Grid.Row="0" Width="75" Height="25" Margin="0,5,0,5"
-                    HorizontalAlignment="Center" Click="PreviewButton_Click" IsEnabled="False">Preview</Button>
+                    HorizontalAlignment="Center" Command="{Binding Preview}">Preview</Button>
             <Button x:Name="RecycleButton" Grid.Column="2" Grid.Row="0" Width="75" Height="25" Margin="0,5,0,5"
-                    HorizontalAlignment="Center" Click="RecycleButton_Click" IsEnabled="False">Recycle</Button>
+                    HorizontalAlignment="Center" Command="{Binding Recycle}">Recycle</Button>
         </Grid>
     </Grid>
 </Page>

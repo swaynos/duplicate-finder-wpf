@@ -23,7 +23,6 @@ namespace DuplicateFinder
         {
         }
 
-
         // Maintain a reference to the NavigationService to navigate to pages outside of the code behind
         internal static IPageNavigationService NavigationService { get; set; }
 

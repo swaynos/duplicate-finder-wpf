@@ -90,6 +90,7 @@
     <Compile Include="Framework\PageNavigationService.cs" />
     <Compile Include="Models\ScanLocation.cs" />
     <Compile Include="Framework\AsyncCommandBase.cs" />
+    <Compile Include="Models\ScanResult.cs" />
     <Compile Include="Utilities\FileSystemWrapper.cs" />
     <Compile Include="Framework\IAsyncCommand.cs" />
     <Compile Include="Utilities\IFileSystemWrapper.cs" />
@@ -97,7 +98,6 @@
     <Compile Include="Utilities\RecycleFile.cs" />
     <Compile Include="Utilities\FolderBrowserDialogWrapper.cs" />
     <Compile Include="Utilities\IRecycleFile.cs" />
-    <Compile Include="Models\ResultPageModel.cs" />
     <Compile Include="Utilities\ScanningProgress.cs" />
     <Compile Include="Framework\AsyncCommand.cs" />
     <Compile Include="Framework\DelegateCommand.cs" />
@@ -140,8 +140,6 @@
     </Page>
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="Models\DuplicateResultModel.cs" />
-    <Compile Include="Models\FileModel.cs" />
     <Compile Include="Utilities\IFolderBrowserDialogWrapper.cs" />
     <Compile Include="Properties\AssemblyInfo.cs">
       <SubType>Code</SubType>
