@@ -148,7 +148,7 @@ namespace DuplicateFinder.ViewModels
                 throw new NullReferenceException();
 
             byte[] previousHash = null;
-            // ToDo: Split into a seperate function that can be unit tested
+            // ToDo: Unit Test
             // ToDo: Order By? Verify that this is being ordered earlier in the stack, and move here.
             foreach (ScannedFile scannedFile in scannedFiles)
             {

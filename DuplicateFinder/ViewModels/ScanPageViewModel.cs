@@ -39,7 +39,6 @@ namespace DuplicateFinder.ViewModels
 
         public IAsyncCommand Loaded { get; private set; }
 
-        //ToDo: Unit Test this Event
         /// <summary>
         /// Event to bind to for when the scanning is completed.
         /// </summary>
@@ -77,7 +76,6 @@ namespace DuplicateFinder.ViewModels
             OnScanComplete();
         }
 
-        // ToDo: Unit Test
         /// <summary>
         /// <para>Performs the scan process</para>
         /// <para>First the storage backend is queried for existing scanned locations.
