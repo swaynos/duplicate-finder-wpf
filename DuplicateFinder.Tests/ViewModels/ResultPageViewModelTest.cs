@@ -19,8 +19,9 @@ namespace DuplicateFinder.Tests.ViewModels
             // ARRANGE
             string filePath = "C:\\Foo\\foo.txt";
             var mockLogger = new Mock<ILogger>();
+            var mockProcess = new Mock<IProcess>();
             var mockRecycleFile = GetMockRecycleFile();
-            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockRecycleFile.Object);
+            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object);
             viewModel.Duplicates.Add(new ScanResult()
             {
                 FilePath = filePath,
@@ -43,8 +44,9 @@ namespace DuplicateFinder.Tests.ViewModels
             // ARRANGE
             string filePath = "C:\\Foo\\foo.txt";
             var mockLogger = new Mock<ILogger>();
+            var mockProcess = new Mock<IProcess>();
             var mockRecycleFile = GetMockRecycleFile();
-            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockRecycleFile.Object);
+            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object);
             viewModel.Duplicates.Add(new ScanResult()
             {
                 FilePath = filePath,
@@ -60,7 +62,51 @@ namespace DuplicateFinder.Tests.ViewModels
             Assert.AreEqual(1, viewModel.Duplicates.Count, "The file was removed from the collection");
         }
 
-        // ToDo: Unit Test Preview
+        [TestMethod]
+        public async Task Preview_PreviewsFile()
+        {
+            // ARRANGE
+            string filePath = "C:\\Foo\\foo.txt";
+            var mockLogger = new Mock<ILogger>();
+            var mockProcess = new Mock<IProcess>();
+            var mockRecycleFile = GetMockRecycleFile();
+            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object);
+            viewModel.Duplicates.Add(new ScanResult()
+            {
+                FilePath = filePath,
+                Hash = new byte[32],
+                IsSelected = true
+            });
+
+            // ACT
+            await viewModel.Preview.ExecuteAsync(null);
+
+            // ASSERT
+            mockProcess.Verify(t => t.StartAsync(filePath), "The IProcess.StartAsync operation was never called.");
+        }
+
+        [TestMethod]
+        public async Task Preview_NoSelection_DoesNothing()
+        {
+            // ARRANGE
+            string filePath = "C:\\Foo\\foo.txt";
+            var mockLogger = new Mock<ILogger>();
+            var mockProcess = new Mock<IProcess>();
+            var mockRecycleFile = GetMockRecycleFile();
+            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object);
+            viewModel.Duplicates.Add(new ScanResult()
+            {
+                FilePath = filePath,
+                Hash = new byte[32],
+                IsSelected = false
+            });
+
+            // ACT
+            await viewModel.Preview.ExecuteAsync(null);
+
+            // ASSERT
+            mockProcess.Verify(t => t.StartAsync(filePath), Times.Never, "The IProcess.StartAsync operation was called when it was expected to not.");
+        }
 
         [TestMethod]
         public void Loaded_WithData_TogglesButtons()

@@ -18,7 +18,8 @@ namespace DuplicateFinder.ViewModels
     {
         private string _searchFilter;
         private ILogger _logger;
-        private DelegateCommand _preview;
+        private IProcess _process;
+        private AsyncCommand<object> _preview;
         private AsyncCommand<object> _recycle;
         private IRecycleFile _recycleFile;
 
@@ -28,7 +29,7 @@ namespace DuplicateFinder.ViewModels
 
         public ICommand Loaded { get; set; }
 
-        public ICommand Preview { get; set; } // ToDo: Shouldn't this be an async command?
+        public IAsyncCommand Preview { get; set; }
 
         public IAsyncCommand Recycle { get; set; }
 
@@ -67,15 +68,16 @@ namespace DuplicateFinder.ViewModels
             }
         }
 
-        public ResultPageViewModel() : this(LogManager.GetCurrentClassLogger(), new RecycleFile())
+        public ResultPageViewModel() : this(LogManager.GetCurrentClassLogger(), new Process(), new RecycleFile())
         {
         }
 
-        internal ResultPageViewModel(ILogger logger, IRecycleFile recycleFile)
+        internal ResultPageViewModel(ILogger logger, IProcess process, IRecycleFile recycleFile)
         {
             _logger = logger;
+            _process = process;
             _recycle = AsyncCommand.Create(() => RecycleSelectionAsync());
-            _preview = DelegateCommand.Create(PreviewSelection, false);
+            _preview = AsyncCommand.Create(() => PreviewSelection(), false);
             _recycleFile = recycleFile;
 
             Duplicates = new ObservableCollection<ScanResult>();
@@ -87,22 +89,12 @@ namespace DuplicateFinder.ViewModels
             SelectedItemsChangedCommand = DelegateCommand.Create(ToggleButtons);
         }
 
-        private void PreviewSelection()
+        private async Task PreviewSelection()
         {
             var selectedDuplicates = Duplicates.Where(t => t.IsSelected).Select(t => t.FilePath);
             foreach (string file in selectedDuplicates)
             {
-                // ToDo: Move into it's own class
-                try
-                {
-                    var process = new System.Diagnostics.Process();
-                    process.StartInfo.FileName = file;
-                    process.Start();
-                }
-                catch (Win32Exception ex)
-                {
-                    _logger.Log(LogLevel.Error, ex);
-                }
+                await _process.StartAsync(file);
             }
         }
 

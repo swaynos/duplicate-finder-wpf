@@ -95,6 +95,8 @@
     <Compile Include="Framework\IAsyncCommand.cs" />
     <Compile Include="Utilities\IFileSystemWrapper.cs" />
     <Compile Include="Framework\NotifyTaskCompletion.cs" />
+    <Compile Include="Utilities\IProcess.cs" />
+    <Compile Include="Utilities\Process.cs" />
     <Compile Include="Utilities\RecycleFile.cs" />
     <Compile Include="Utilities\FolderBrowserDialogWrapper.cs" />
     <Compile Include="Utilities\IRecycleFile.cs" />

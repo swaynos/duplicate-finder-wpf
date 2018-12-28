@@ -6,7 +6,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using Forms = System.Windows.Forms;
 
-namespace DuplicateFinder.Tests
+namespace DuplicateFinder.Tests.ViewModels
 {
     [TestClass]
     public class HomePageViewModelTest
