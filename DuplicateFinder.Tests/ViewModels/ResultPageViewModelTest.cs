@@ -141,7 +141,7 @@ namespace DuplicateFinder.Tests.ViewModels
 
             // ASSERT
             string expectedColor1 = BackgroundColor.Transparent.ToString();
-            string expectedColor2 = BackgroundColor.Grey.ToString();
+            string expectedColor2 = BackgroundColor.DarkGray .ToString();
             string failureMessage = "The background color does not match what was expected";
             Assert.AreEqual(expectedColor1, viewModel.Duplicates[0].Background, failureMessage);
             Assert.AreEqual(expectedColor1, viewModel.Duplicates[1].Background, failureMessage);

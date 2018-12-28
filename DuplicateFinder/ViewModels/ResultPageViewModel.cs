@@ -17,7 +17,7 @@ namespace DuplicateFinder.ViewModels
     public enum BackgroundColor
     {
         Transparent=0x0,
-        Grey=0x1
+        DarkGray=0x1
     }
     public class ResultPageViewModel : BindableBase
     {

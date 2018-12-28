@@ -129,12 +129,12 @@ namespace DuplicateFinder.Tests.ViewModels
             {
                 throw new NotImplementedException();
             });
-
+            
             // ACT
             await viewModel.BeginScanAsync();
 
             // ASSERT
-            // ToDo: Assert exception logged
+            mockLogger.Verify(t => t.Error(It.IsAny<Exception>(), It.IsAny<string>()), Times.Once, "An error was never logged");
         }
 
         [TestMethod]
@@ -174,7 +174,7 @@ namespace DuplicateFinder.Tests.ViewModels
 
             // ASSERT
             Assert.AreEqual(0, results.Count, "The wrong number of items were returned");
-            // ToDo: Assert exception is logged
+            mockLogger.Verify(t => t.Error(It.IsAny<Exception>(), It.IsAny<string>()), Times.Once, "An error was never logged");
         }
 
         [TestMethod]

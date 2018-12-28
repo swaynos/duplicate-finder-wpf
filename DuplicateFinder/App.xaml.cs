@@ -1,4 +1,5 @@
 ﻿using DuplicateFinder.Framework;
+using DuplicateFinder.Views;
 using NLog;
 using System.Windows;
 using System.Windows.Navigation;
@@ -31,6 +32,8 @@ namespace DuplicateFinder
             MainWindow main = new MainWindow();
             NavigationService = new PageNavigationService(main.NavigationService);
             main.Show();
+            HomePage homePage = new HomePage();
+            NavigationService.Navigate(homePage);
         }
 
         /// <summary>

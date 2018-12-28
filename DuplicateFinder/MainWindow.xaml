@@ -5,5 +5,5 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d"
         Title="Duplicate Finder" Height="350" Width="500"
-        Source="Views\HomePage.xaml" ShowsNavigationUI="False">
+        ShowsNavigationUI="False">
 </NavigationWindow>
