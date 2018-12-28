@@ -14,14 +14,7 @@ namespace DuplicateFinder.Models
 
         public bool IsSelected { get; set; }
 
-        // ToDo: Do something with this
-        public string Background
-        {
-            get
-            {
-                return "Transparent";
-            }
-        }
+        public string Background { get; set; }
 
         public bool Equals(ScanResult other)
         {

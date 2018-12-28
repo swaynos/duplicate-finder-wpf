@@ -4,6 +4,7 @@ using System.Threading.Tasks;
 using DuplicateFinder.Models;
 using DuplicateFinder.Utilities;
 using DuplicateFinder.ViewModels;
+using FileHashRepository;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using NLog;
@@ -109,6 +110,48 @@ namespace DuplicateFinder.Tests.ViewModels
         }
 
         [TestMethod]
+        public void AddScannedFiles_AddsFileToModel()
+        {
+            // ARRANGE
+            var mockLogger = new Mock<ILogger>();
+            var mockProcess = new Mock<IProcess>();
+            var mockRecycleFile = GetMockRecycleFile();
+            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object);
+            List<ScannedFile> scannedFiles = GetScannedFiles();
+
+            // ACT
+            viewModel.AddScannedFiles(scannedFiles);
+
+            // ASSERT
+            Assert.AreEqual(scannedFiles.Count, viewModel.Duplicates.Count, "The wrong number of items were added to the view model");
+        }
+
+        [TestMethod]
+        public void AddScannedFiles_AddsAlternatingColors()
+        {
+            // ARRANGE
+            var mockLogger = new Mock<ILogger>();
+            var mockProcess = new Mock<IProcess>();
+            var mockRecycleFile = GetMockRecycleFile();
+            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object);
+            List<ScannedFile> scannedFiles = GetScannedFiles();
+
+            // ACT
+            viewModel.AddScannedFiles(scannedFiles);
+
+            // ASSERT
+            string expectedColor1 = BackgroundColor.Transparent.ToString();
+            string expectedColor2 = BackgroundColor.Grey.ToString();
+            string failureMessage = "The background color does not match what was expected";
+            Assert.AreEqual(expectedColor1, viewModel.Duplicates[0].Background, failureMessage);
+            Assert.AreEqual(expectedColor1, viewModel.Duplicates[1].Background, failureMessage);
+            Assert.AreEqual(expectedColor2, viewModel.Duplicates[2].Background, failureMessage);
+            Assert.AreEqual(expectedColor2, viewModel.Duplicates[3].Background, failureMessage);
+            Assert.AreEqual(expectedColor1, viewModel.Duplicates[4].Background, failureMessage);
+            Assert.AreEqual(expectedColor1, viewModel.Duplicates[5].Background, failureMessage);
+        }
+
+        [TestMethod]
         public void Loaded_WithData_TogglesButtons()
         {
             // ARRANGE
@@ -136,6 +179,41 @@ namespace DuplicateFinder.Tests.ViewModels
                 return true;
             });
             return mockRecycleFile;
+        }
+
+        /// <summary>
+        /// Helper method will return two sets of duplicate ScannedFiles
+        /// </summary>
+        /// <returns>New List of ScannedFiles</returns>
+        private List<ScannedFile> GetScannedFiles()
+        {
+            Func<int, string, byte[], ScannedFile> createScannedFile = (id, name, hash) =>
+            {
+                return new ScannedFile()
+                {
+                    Id = id,
+                    Name = name,
+                    Path = string.Format("C:\\foo\\{0}", name),
+                    Hash = hash
+                };
+            };
+            // Helper delegate to get a new 32 byte hash by only providing the first byte
+            Func<byte, byte[]> getNewHash = (f) =>
+            {
+                byte[] newHash = new byte[32];
+                newHash[0] = f;
+                return newHash;
+            };
+
+            List<ScannedFile> scannedFiles = new List<ScannedFile>();
+            scannedFiles.Add(createScannedFile(1, "foo1.txt", getNewHash(0x01)));
+            scannedFiles.Add(createScannedFile(2, "foo2.txt", getNewHash(0x01)));
+            scannedFiles.Add(createScannedFile(3, "bar1.txt", getNewHash(0x02)));
+            scannedFiles.Add(createScannedFile(4, "bar2.txt", getNewHash(0x02)));
+            scannedFiles.Add(createScannedFile(5, "foobar1.txt", getNewHash(0x03)));
+            scannedFiles.Add(createScannedFile(6, "foobar2.txt", getNewHash(0x03)));
+
+            return scannedFiles;
         }
     }
 }

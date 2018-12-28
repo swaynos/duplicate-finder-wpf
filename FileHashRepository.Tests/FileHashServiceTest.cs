@@ -343,7 +343,33 @@ namespace FileHashRepository.Tests
             // ASSERT
             Assert.AreEqual(4, results.Count, "The number of found scanned files does not match what was expected");
         }
-        
+
+        [TestMethod]
+        public async Task ReturnDuplicatesAsync_ManyDuplicateHash_ReturnsSortedList()
+        {
+            // ARRANGE
+            var mockSet = GetMockScannedFiles(10);
+            var mockContext = GetMockContext(mockSet.Object);
+            /// Please see comment in <see cref="ReturnDuplicatesAsync_ManyDuplicateHash_ReturnsManyScannedFiles"/>
+            byte[] uniqueBytesOne = new byte[32];
+            byte[] uniqueBytesTwo = new byte[32];
+            uniqueBytesOne[1] = 0x01;
+            uniqueBytesTwo[2] = 0x02;
+            UpdateMockScannedFileHash(mockSet.Object, 1, uniqueBytesOne, "foo1", null);
+            UpdateMockScannedFileHash(mockSet.Object, 2, uniqueBytesTwo, "bar1", null);
+            UpdateMockScannedFileHash(mockSet.Object, 3, uniqueBytesTwo, "bar2", null);
+            UpdateMockScannedFileHash(mockSet.Object, 4, uniqueBytesOne, "foo2", null);
+
+            FileHashService service = new FileHashService(mockContext.Object);
+
+            // ACT
+            List<ScannedFile> results = await service.ReturnDuplicatesAsync();
+
+            // ASSERT
+            Assert.AreEqual("foo2", results[1].Name, "The collection was not sorted as expected.");
+        }
+
+
         [TestMethod]
         public async Task InsertScannedLocationAsync_InsertsScannedLocation()
         {

@@ -20,5 +20,10 @@ namespace FileHashRepository
 
             return isEqual;
         }
+
+        public override int GetHashCode()
+        {
+            return Path.GetHashCode();
+        }
     }
 }

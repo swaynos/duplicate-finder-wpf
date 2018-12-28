@@ -1,19 +1,24 @@
 ﻿using DuplicateFinder.Framework;
 using DuplicateFinder.Models;
-using System.Collections.ObjectModel;
-using System.Windows.Input;
-using System.Windows.Data;
-using System.Collections.Generic;
-using System.ComponentModel;
-using System.Linq;
-using System;
-using NLog;
-using System.Threading.Tasks;
 using DuplicateFinder.Utilities;
 using FileHashRepository;
+using FileHashRepository.Utilities;
+using NLog;
+using System;
+using System.Collections.Generic;
+using System.Collections.ObjectModel;
+using System.Linq;
+using System.Threading.Tasks;
+using System.Windows.Data;
+using System.Windows.Input;
 
 namespace DuplicateFinder.ViewModels
 {
+    public enum BackgroundColor
+    {
+        Transparent=0x0,
+        Grey=0x1
+    }
     public class ResultPageViewModel : BindableBase
     {
         private string _searchFilter;
@@ -131,6 +136,7 @@ namespace DuplicateFinder.ViewModels
         /// <summary>
         /// Takes the scanned files and adds them to the <see cref="Duplicates"/> collection. 
         /// The ScannedFiles will be sorted by Hash before being added to the ViewModel.
+        /// It is assumed that <paramref name="scannedFiles"/> is sorted by Hash before calling.
         /// </summary>
         /// <param name="scannedFiles">The scanned files to add</param>
         /// <exception cref="NullReferenceException">Will return a NullReferenceException if <paramref name="scannedFiles"/> is null.</exception>
@@ -140,19 +146,25 @@ namespace DuplicateFinder.ViewModels
                 throw new NullReferenceException();
 
             byte[] previousHash = null;
-            // ToDo: Unit Test
-            // ToDo: Order By? Verify that this is being ordered earlier in the stack, and move here.
+            BackgroundColor color = BackgroundColor.Transparent;
+            ScannedFileHashComparer comparer = new ScannedFileHashComparer();
+
             foreach (ScannedFile scannedFile in scannedFiles)
             {
+                // If the hash is not same as the previous hash flip the same color
+                if (previousHash != null && !comparer.Equals(previousHash, scannedFile.Hash))
+                {
+                    // If there are ever more than two BackgroundColor types, this flipping logic
+                    // will need to be revisited.
+                    color = 1 - color;
+                }
                 ScanResult scanResult = new ScanResult()
                 {
                     FilePath = scannedFile.Path,
                     Hash = scannedFile.Hash,
+                    Background = color.ToString(),
                     IsSelected = false
                 };
-                // ToDo: Implement Colors
-                // If the hash is the same as the previous hash use the same color
-                // Else flip the color
                 Duplicates.Add(scanResult);
                 previousHash = scannedFile.Hash;
             }
