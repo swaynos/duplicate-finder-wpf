@@ -15,7 +15,6 @@ namespace FileHashRepository
             _data = data;
         }
 
-        // ToDo: Rename to "Add"?
         public void InsertData(T data)
         {
             _data.Add(data);
