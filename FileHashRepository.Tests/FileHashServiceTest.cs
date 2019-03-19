@@ -2,11 +2,9 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using Moq.Protected;
-using System.Data.Entity;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using System.Data.Entity.Infrastructure;
 using FileHashRepository.Tests.Mocks;
 
 namespace FileHashRepository.Tests
@@ -21,6 +19,7 @@ namespace FileHashRepository.Tests
             var files = new Mock<IDataCache<ScannedFile>>();
             var locations = new Mock<IDataCache<ScannedLocation>>();
             FileHashService service = new FileHashService(files.Object, locations.Object);
+            files.Setup(t => t.ListData()).Returns(() => new List<ScannedFile>().AsQueryable());
 
             // ACT
             await service.InsertScannedFileAsync(new ScannedFile()
@@ -46,6 +45,15 @@ namespace FileHashRepository.Tests
                 Hash = new byte[32]
             };
             FileHashService service = new FileHashService(files.Object, locations.Object);
+            files.Setup(t => t.ListData()).Returns(() => new List<ScannedFile>()
+            {
+                new ScannedFile()
+                {
+                    Name = "foo",
+                    Path = "bar",
+                    Hash =  new byte[32]
+                }
+            }.AsQueryable());
 
             // ACT
             await service.InsertScannedFileAsync(mockScannedFile);
@@ -128,11 +136,12 @@ namespace FileHashRepository.Tests
             await service.PurgeScannedLocationsAsync(locationData.Select(t => t.Path).ToList());
 
             // ASSERT
-            List<string> results = fileData.Select(t => t.Path).ToList();
+            List<string> results = await service.ListScannedFilePathsAsync(null);
             Assert.AreEqual(3, results.Count);
             Assert.AreEqual("C:\\Bar\\Foobar", results[0]);
-            Assert.AreEqual("C:\\Foobar", results[1]);
-            Assert.AreEqual("C:\\Foobar\\Foobar", results[2]);
+            Assert.AreEqual("C:\\Foobar\\Foobar", results[1]);
+            Assert.AreEqual("C:\\Foobar", results[2]);
+           
 
         }
 
@@ -143,55 +152,61 @@ namespace FileHashRepository.Tests
         public async Task PurgeScannedLocations_RemovesScannedLocations()
         {
             // ARRANGE
-            List<ScannedLocation> locationData = new List<ScannedLocation>()
+            var files = new Mock<IDataCache<ScannedFile>>();
+            var locations = new Mock<IDataCache<ScannedLocation>>();
+            FileHashService service = new FileHashService(files.Object, locations.Object);
+            files.Setup(t => t.ListData()).Returns(() =>
             {
-                new ScannedLocation()
+                return new List<ScannedFile>()
                 {
-                    Path = "C:\\Foo"
-                },
-                new ScannedLocation()
-                {
-                    Path = "C:\\Foobar"
-                },
-                new ScannedLocation()
-                {
-                    Path = "C:\\Foo\\Bar"
-                }
-            };
-            List<ScannedFile> fileData = new List<ScannedFile>()
+                    new ScannedFile()
+                    {
+                        Name = "Foobar",
+                        Path = "C:\\Foo",
+                        Hash = new byte[32]
+                    },
+                    new ScannedFile()
+                    {
+                        Name = "Foobar",
+                        Path = "C:\\Foobar",
+                        Hash = new byte[32]
+                    },
+                    new ScannedFile()
+                    {
+                        Name = "Foobar",
+                        Path = "C:\\Foo\\Bar",
+                        Hash = new byte[32]
+                    }
+                }.AsQueryable();
+            });
+            locations.Setup(t => t.ListData()).Returns(() =>
             {
-                new ScannedFile()
+                return new List<ScannedLocation>()
                 {
-                    Name = "Foobar",
-                    Path = "C:\\Foo",
-                    Hash = new byte[32]
-                },
-                new ScannedFile()
-                {
-                    Name = "Foobar",
-                    Path = "C:\\Foobar",
-                    Hash = new byte[32]
-                },
-                new ScannedFile()
-                {
-                    Name = "Foobar",
-                    Path = "C:\\Foo\\Bar",
-                    Hash = new byte[32]
-                }
-            };
-            var files = new DataCache<ScannedFile>(fileData);
-            var locations = new DataCache<ScannedLocation>(locationData);
-            FileHashService service = new FileHashService(files, locations);
-
+                    new ScannedLocation()
+                    {
+                        Path = "C:\\Foo"
+                    },
+                    new ScannedLocation()
+                    {
+                        Path = "C:\\Foobar"
+                    },
+                    new ScannedLocation()
+                    {
+                        Path = "C:\\Foo\\Bar"
+                    }
+                }.AsQueryable();
+            });
 
             // ACT
-            await service.PurgeScannedLocationsAsync(locationData.Select(t => t.Path).ToList());
+            await service.PurgeScannedLocationsAsync(new List<string>()
+            {
+                "C:\\Foo"
+            });
 
             // ASSERT
-            List<string> results = locationData.Select(t => t.Path).ToList();
-            Assert.AreEqual(2, results.Count);
-            Assert.AreEqual(results[0], "C:\\Foo\\Bar");
-            Assert.AreEqual(results[1], "C:\\Foobar");
+            locations.Verify(t => t.PurgeData(It.IsAny<IQueryable<ScannedLocation>>()), Times.Once);
+            // ToDo: Assert right collection of ScannedLocations
         }
 
         [TestMethod]
@@ -215,10 +230,21 @@ namespace FileHashRepository.Tests
         public async Task RemoveScannedFilesByFilePathAsync_OneMatch_RemovesOne()
         {
             // ARRANGE
-            string searchPath = "C:\foobar.foo";
+            string searchPath = "C:\\foobar.foo";
             var files = new Mock<IDataCache<ScannedFile>>();
             var locations = new Mock<IDataCache<ScannedLocation>>();
             FileHashService service = new FileHashService(files.Object, locations.Object);
+            files.Setup(t => t.ListData()).Returns(() =>
+            {
+                return new List<ScannedFile>()
+                {
+                    new ScannedFile()
+                    {
+                        Name = "foo",
+                        Path = "C:\\foobar.foo"
+                    }
+                }.AsQueryable();
+            });
 
             // ACT
             int result = await service.RemoveScannedFilesByFilePathAsync(searchPath);
@@ -231,16 +257,37 @@ namespace FileHashRepository.Tests
         public async Task RemoveScannedFilesByFilePathAsync_ManyMatches_RemovesMany()
         {
             // ARRANGE
-            string searchPath = "C:\foobar.foo";
+            string searchPath = "C:\\foobar.foo";
             var files = new Mock<IDataCache<ScannedFile>>();
             var locations = new Mock<IDataCache<ScannedLocation>>();
             FileHashService service = new FileHashService(files.Object, locations.Object);
+            files.Setup(t => t.ListData()).Returns(() =>
+            {
+                return new List<ScannedFile>()
+                {
+                    new ScannedFile()
+                    {
+                        Name = "foobar.foo",
+                        Path = "C:\\foobar.foo"
+                    },
+                    new ScannedFile()
+                    {
+                        Name = "foobar.foo",
+                        Path = "C:\\foobar.foo"
+                    },
+                    new ScannedFile()
+                    {
+                        Name = "foobar.foo",
+                        Path = "C:\\foo\\foobar.foo"
+                    }
+                }.AsQueryable();
+            });
 
             // ACT
             int result = await service.RemoveScannedFilesByFilePathAsync(searchPath);
 
             // ASSERT
-            Assert.AreEqual(3, result, "The number of items removed does not match what was expected.");
+            Assert.AreEqual(2, result, "The number of items removed does not match what was expected.");
         }
 
         [TestMethod]
@@ -258,7 +305,10 @@ namespace FileHashRepository.Tests
                     {
                         byte[] updatedBytes = new byte[32];
                         updatedBytes[0] = System.Convert.ToByte(i);
-                        scannedFiles[i].Hash = updatedBytes;
+                        scannedFiles.Add(new ScannedFile()
+                        {
+                            Hash = updatedBytes
+                        });
                     }
                     return scannedFiles.AsQueryable();
                 });
@@ -284,7 +334,18 @@ namespace FileHashRepository.Tests
                     byte[] uniqueBytesTwo = new byte[32];
                     List<ScannedFile> scannedFiles = new List<ScannedFile>()
                     {
-                        new ScannedFile(), new ScannedFile(), new ScannedFile()
+                        new ScannedFile()
+                        {
+                            Hash = new byte[32]
+                        },
+                        new ScannedFile()
+                        {
+                            Hash = new byte[32]
+                        },
+                        new ScannedFile()
+                        {
+                            Hash = new byte[32]
+                        }
                     };
                     uniqueBytesOne[0] = 0x11;
                     uniqueBytesTwo[0] = 0xFF;
@@ -318,7 +379,10 @@ namespace FileHashRepository.Tests
                     List<ScannedFile> scannedFiles = new List<ScannedFile>();
                     for (int i = 1; i <= 10; i++)
                     {
-                        ScannedFile file = new ScannedFile();
+                        ScannedFile file = new ScannedFile()
+                        {
+                            Hash = new byte[32]
+                        };
                         switch (i)
                         {
                             case 1:
@@ -329,7 +393,12 @@ namespace FileHashRepository.Tests
                             case 4:
                                 Array.Copy(uniqueBytesTwo, file.Hash, 32);
                                 break;
+                            default:
+                                file.Hash[31] = (byte)i;
+                                break;
+
                         }
+                        scannedFiles.Add(file);
                     }
                     return scannedFiles.AsQueryable();
                 });
@@ -358,7 +427,10 @@ namespace FileHashRepository.Tests
                     List<ScannedFile> scannedFiles = new List<ScannedFile>();
                     for (int i = 1; i <= 10; i++)
                     {
-                        ScannedFile file = new ScannedFile();
+                        ScannedFile file = new ScannedFile()
+                        {
+                            Hash = new byte[32]
+                        };
                         switch (i)
                         {
                             case 1:
@@ -378,6 +450,7 @@ namespace FileHashRepository.Tests
                                 Array.Copy(uniqueBytesOne, file.Hash, 32);
                                 break;
                         }
+                        scannedFiles.Add(file);
                     }
                     return scannedFiles.AsQueryable();
                 });
@@ -434,7 +507,7 @@ namespace FileHashRepository.Tests
             });
 
             // ASSERT
-            locations.Verify(t => t.InsertData(It.IsAny<ScannedLocation>()), Times.Once());
+            locations.Verify(t => t.InsertData(It.IsAny<ScannedLocation>()), Times.Never());
         }
 
         [TestMethod]
@@ -547,8 +620,12 @@ namespace FileHashRepository.Tests
 
             // ASSERT
             Assert.AreEqual(2, results.Count);
-            Assert.AreEqual("C:\\Foo\\Bar\\Foobar", results[0]);
-            Assert.AreEqual("C:\\Foo\\Foobar", results[1]);
+            Assert.IsTrue(
+                results[0].Equals("C:\\Foo\\Foobar", StringComparison.InvariantCultureIgnoreCase), 
+                "The wrong path was returned.");
+            Assert.IsTrue(
+                results[1].Equals("C:\\Foo\\Bar\\Foobar", StringComparison.InvariantCultureIgnoreCase), 
+                "The wrong path was returned.");
         }
     }
 }
