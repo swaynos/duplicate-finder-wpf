@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace FileHashRepository
 {
-    public interface IFileHashService : IDisposable
+    public interface IFileHashService
     {
         Task InsertScannedFileAsync(ScannedFile scannedFile);
         Task InsertScannedLocationAsync(ScannedLocation scannedLocation);

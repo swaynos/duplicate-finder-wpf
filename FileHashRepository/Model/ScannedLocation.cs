@@ -8,6 +8,8 @@ namespace FileHashRepository
 {
     public partial class ScannedLocation
     {
+        public string Path { get; set; }
+
         public override bool Equals(object obj)
         {
             ScannedLocation otherScannedLocation = obj as ScannedLocation;

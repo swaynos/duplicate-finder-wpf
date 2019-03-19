@@ -85,11 +85,6 @@
     </Otherwise>
   </Choose>
   <ItemGroup>
-    <Compile Include="Mocks\MockFileHashEntities.cs" />
-    <Compile Include="Mocks\MockFileHashServiceFactory.cs" />
-    <Compile Include="Mocks\MockDbAsyncEnumerable.cs" />
-    <Compile Include="Mocks\MockDbAsyncEnumerator.cs" />
-    <Compile Include="Mocks\MockDbAsyncQueryProvider.cs" />
     <Compile Include="Mocks\MockScannedFileStoreProgress.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="FileHashServiceTest.cs" />
@@ -97,6 +92,7 @@
     <Compile Include="ScannedFileStoreTest.cs" />
     <Compile Include="ScannedFileTest.cs" />
     <Compile Include="ScannedLocationTest.cs" />
+    <Compile Include="DataCacheTest.cs" />
     <Compile Include="UtilitiesTest.cs" />
   </ItemGroup>
   <ItemGroup>
@@ -111,7 +107,6 @@
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
     <None Include="packages.config" />
   </ItemGroup>
   <Choose>

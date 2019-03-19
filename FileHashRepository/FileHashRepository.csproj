@@ -50,12 +50,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <HintPath>..\packages\EntityFramework.6.2.0\lib\net45\EntityFramework.dll</HintPath>
-    </Reference>
-    <Reference Include="EntityFramework.SqlServer, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
-      <HintPath>..\packages\EntityFramework.6.2.0\lib\net45\EntityFramework.SqlServer.dll</HintPath>
-    </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
     <Reference Include="System.Core" />
@@ -72,25 +66,10 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="DataCache.cs" />
     <Compile Include="FileHashService.cs" />
-    <Compile Include="FileHashModel.Context.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>FileHashModel.Context.tt</DependentUpon>
-    </Compile>
-    <Compile Include="FileHashModel.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>FileHashModel.tt</DependentUpon>
-    </Compile>
-    <Compile Include="FileHashModel.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>FileHashModel.edmx</DependentUpon>
-    </Compile>
-    <Compile Include="FileHashServiceFactory.cs" />
+    <Compile Include="IDataCache.cs" />
     <Compile Include="IFileHashService.cs" />
-    <Compile Include="IFileHashServiceFactory.cs" />
     <Compile Include="IScannedFileStore.cs" />
     <Compile Include="Model\ScannedFile.cs" />
     <Compile Include="Model\ScannedLocation.cs" />
@@ -100,32 +79,10 @@
       <DesignTimeSharedInput>True</DesignTimeSharedInput>
       <DependentUpon>Settings.settings</DependentUpon>
     </Compile>
-    <Compile Include="ScannedFile.cs">
-      <DependentUpon>FileHashModel.tt</DependentUpon>
-    </Compile>
     <Compile Include="ScannedFileStore.cs" />
-    <Compile Include="ScannedLocation.cs">
-      <DependentUpon>FileHashModel.tt</DependentUpon>
-    </Compile>
     <Compile Include="Utilities\FileHash.cs" />
-    <Compile Include="Utilities\MissingDllHack.cs" />
     <Compile Include="Utilities\ScannedFileHashComparer.cs" />
     <Compile Include="Utilities\SqlQuery.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <Content Include="FileHash.mdf">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="FileHashModel.Context.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <DependentUpon>FileHashModel.edmx</DependentUpon>
-      <LastGenOutput>FileHashModel.Context.cs</LastGenOutput>
-    </Content>
-    <Content Include="FileHashModel.tt">
-      <Generator>TextTemplatingFileGenerator</Generator>
-      <DependentUpon>FileHashModel.edmx</DependentUpon>
-      <LastGenOutput>FileHashModel.cs</LastGenOutput>
-    </Content>
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5.2">
@@ -140,14 +97,6 @@
     </BootstrapperPackage>
   </ItemGroup>
   <ItemGroup>
-    <None Include="App.config" />
-    <EntityDeploy Include="FileHashModel.edmx">
-      <Generator>EntityModelCodeGenerator</Generator>
-      <LastGenOutput>FileHashModel.Designer.cs</LastGenOutput>
-    </EntityDeploy>
-    <None Include="FileHashModel.edmx.diagram">
-      <DependentUpon>FileHashModel.edmx</DependentUpon>
-    </None>
     <None Include="packages.config" />
     <None Include="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>

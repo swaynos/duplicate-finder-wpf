@@ -191,7 +191,6 @@ namespace DuplicateFinder.Tests.ViewModels
             {
                 return new ScannedFile()
                 {
-                    Id = id,
                     Name = name,
                     Path = string.Format("C:\\foo\\{0}", name),
                     Hash = hash

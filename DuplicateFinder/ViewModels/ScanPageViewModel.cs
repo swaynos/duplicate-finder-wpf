@@ -52,7 +52,8 @@ namespace DuplicateFinder.ViewModels
             ScanComplete?.Invoke(this, EventArgs.Empty);
         }
 
-        public ScanPageViewModel() : this(LogManager.GetCurrentClassLogger(), new ScannedFileStore())
+        // ToDo: Create another Service for loading scanned files and locations and managing the ScannedFileStore
+        public ScanPageViewModel() : this(LogManager.GetCurrentClassLogger(), new ScannedFileStore(new FileHashService(new DataCache<ScannedFile>(new List<ScannedFile>()), new DataCache<ScannedLocation>(new List<ScannedLocation>()))))
         {
         }
 

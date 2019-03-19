@@ -12,12 +12,10 @@ namespace FileHashRepository.Tests
             // ARRANGE
             ScannedLocation one = new ScannedLocation()
             {
-                Id = 1,
                 Path = "foo"
             };
             ScannedLocation two = new ScannedLocation()
             {
-                Id = 2,
                 Path = "foo"
             };
 
@@ -34,12 +32,10 @@ namespace FileHashRepository.Tests
             // ARRANGE
             ScannedLocation one = new ScannedLocation()
             {
-                Id = 1,
                 Path = "foo"
             };
             ScannedLocation two = new ScannedLocation()
             {
-                Id = 2,
                 Path = "bar"
             };
 

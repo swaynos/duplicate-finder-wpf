@@ -18,99 +18,117 @@ namespace FileHashRepository.Tests
         public async Task InsertScannedFileAsync_InsertsScannedFile()
         {
             // ARRANGE
-            var mockSet = GetMockScannedFiles(0);
-            var mockContext = GetMockContext(mockSet.Object);
-            FileHashService service = new FileHashService(mockContext.Object);
+            var files = new Mock<IDataCache<ScannedFile>>();
+            var locations = new Mock<IDataCache<ScannedLocation>>();
+            FileHashService service = new FileHashService(files.Object, locations.Object);
 
             // ACT
             await service.InsertScannedFileAsync(new ScannedFile()
             {
                 Name = "foo",
-                Path = "bar",
-                Id = 1
+                Path = "bar"
             });
 
             // ASSERT
-            mockSet.Verify(t => t.Add(It.IsAny<ScannedFile>()), Times.Once());
-            mockContext.Verify(t => t.SaveChangesAsync(), Times.Once());
+            files.Verify(t => t.InsertData(It.IsAny<ScannedFile>()), Times.Once());
         }
 
         [TestMethod]
         public async Task InsertScannedFileAsync_IgnoresDuplicateFile()
         {
             // ARRANGE
-            var mockSet = GetMockScannedFiles(1);
-            var mockContext = GetMockContext(mockSet.Object);
+            var files = new Mock<IDataCache<ScannedFile>>();
+            var locations = new Mock<IDataCache<ScannedLocation>>();
             var mockScannedFile = new ScannedFile()
             {
-                Name = mockSet.Object.First().Name,
-                Path = mockSet.Object.First().Path,
-                Hash = mockSet.Object.First().Hash,
-                Id = 2
+                Name = "foo",
+                Path = "bar",
+                Hash = new byte[32]
             };
-            FileHashService service = new FileHashService(mockContext.Object);
+            FileHashService service = new FileHashService(files.Object, locations.Object);
 
             // ACT
             await service.InsertScannedFileAsync(mockScannedFile);
 
             // ASSERT
-            mockSet.Verify(t => t.Add(It.IsAny<ScannedFile>()), Times.Never());
-            mockContext.Verify(t => t.SaveChangesAsync(), Times.Never());
+            files.Verify(t => t.InsertData(It.IsAny<ScannedFile>()), Times.Never());
         }
 
         [TestMethod]
         public async Task PurgeScannedLocations_RemovesAllScannedFileAndLocationEntities()
         {
             // ARRANGE
-            var mockScannedFiles = GetMockScannedFiles(3);
-            var mockScannedLocations = GetMockScannedLocations(1);
-            var mockContext = GetMockContext(mockScannedFiles.Object, mockScannedLocations.Object);
-
-            FileHashService service = new FileHashService(mockContext.Object);
+            var files = new Mock<IDataCache<ScannedFile>>();
+            var locations = new Mock<IDataCache<ScannedLocation>>();
+            FileHashService service = new FileHashService(files.Object, locations.Object);
 
             // ACT
            await service.PurgeScannedLocationsAsync(null);
 
             // ASSERT
-            mockScannedFiles.Verify(t => t.RemoveRange(It.IsAny<IEnumerable<ScannedFile>>()), Times.Once(), 
+            files.Verify(t => t.PurgeData(It.IsAny<IQueryable<ScannedFile>>()), Times.Once(), 
                     "The complete range of entities was not removed from the entity set.");
-            mockScannedLocations.Verify(t => t.RemoveRange(It.IsAny<IEnumerable<ScannedLocation>>()), Times.Once(),
+            locations.Verify(t => t.PurgeData(It.IsAny<IQueryable<ScannedLocation>>()), Times.Once(),
                     "The complete range of entities was not removed from the entity set.");
-            mockContext.Verify(t => t.SaveChangesAsync(), Times.Once());
         }
 
         /// <summary>
-        /// This automates an end to end test of PurgeScannedLocations method (including SQL). 
-        /// Remove the [Ignore] attribute to run this test.
+        /// This automates an end to end test of PurgeScannedLocations method. 
         /// </summary>
         [TestMethod]
-        [Ignore] // Ignore non Unit Tests
-        public async Task PurgeScannedLocations_SqlCommandPurgesCorrectScannedFiles()
+        public async Task PurgeScannedLocations_PurgesCorrectScannedFiles()
         {
             // ARRANGE
-            List<string> results;
-            List<string> locations = new List<string>()
+            List<ScannedLocation> locationData = new List<ScannedLocation>()
             {
-                "C:\\Foo"
+                new ScannedLocation()
+                {
+                    Path = "C:\\Foo"
+                }
             };
-            using (FileHashService service = new FileHashService(new FileHashEntities()))
+            List<ScannedFile> fileData = new List<ScannedFile>()
             {
-                await InsertScannedFileAsync(service, new byte[32], "Foobar", "C:\\Foo\\Foobar");
-                await InsertScannedFileAsync(service, new byte[32], "Foobar", "C:\\Bar\\Foobar");
-                await InsertScannedFileAsync(service, new byte[32], "Foobar", "C:\\Foo\\Bar\\Foobar");
-                await InsertScannedFileAsync(service, new byte[32], "Foobar", "C:\\Foobar\\Foobar");
-                await InsertScannedFileAsync(service, new byte[32], "Foobar", "C:\\Foobar");
+                new ScannedFile()
+                {
+                    Name = "Foobar",
+                    Path = "C:\\Foo\\Foobar",
+                    Hash = new byte[32]
+                },
+                new ScannedFile()
+                {
+                    Name = "Foobar",
+                    Path = "C:\\Bar\\Foobar",
+                    Hash = new byte[32]
+                },
+                new ScannedFile()
+                {
+                    Name = "Foobar",
+                    Path = "C:\\Foo\\Bar\\Foobar",
+                    Hash = new byte[32]
+                },
+                new ScannedFile()
+                {
+                    Name = "Foobar",
+                    Path = "C:\\Foobar\\Foobar",
+                    Hash = new byte[32]
+                },
+                new ScannedFile()
+                {
+                    Name = "Foobar",
+                    Path = "C:\\Foobar",
+                    Hash = new byte[32]
+                }
+            };
+            var files = new DataCache<ScannedFile>(fileData);
+            var locations = new DataCache<ScannedLocation>(locationData);
+            FileHashService service = new FileHashService(files, locations);
 
-                // ACT
-                await service.PurgeScannedLocationsAsync(locations);
-                results = await service.ListScannedFilePathsAsync(null);
-                results.Sort();
 
-                // Cleanup any remaining entities we created
-                await service.PurgeScannedLocationsAsync(null);
-            }
+            // ACT
+            await service.PurgeScannedLocationsAsync(locationData.Select(t => t.Path).ToList());
 
             // ASSERT
+            List<string> results = fileData.Select(t => t.Path).ToList();
             Assert.AreEqual(3, results.Count);
             Assert.AreEqual("C:\\Bar\\Foobar", results[0]);
             Assert.AreEqual("C:\\Foobar", results[1]);
@@ -119,51 +137,58 @@ namespace FileHashRepository.Tests
         }
 
         /// <summary>
-        /// This automates an end to end test of PurgeScannedLocations method (including SQL). 
-        /// Remove the [Ignore] attribute to run this test.
+        /// This automates an end to end test of PurgeScannedLocations method.
         /// </summary>
         [TestMethod]
-        [Ignore] // Ignore non Unit Tests
-        public async Task PurgeScannedLocations_SqlCommandRemovesScannedLocations()
+        public async Task PurgeScannedLocations_RemovesScannedLocations()
         {
             // ARRANGE
-            List<string> results;
-            List<string> locations = new List<string>()
+            List<ScannedLocation> locationData = new List<ScannedLocation>()
             {
-                "C:\\Foo"
-            };
-            using (FileHashEntities context = new FileHashEntities())
-            {
-                using (FileHashService service = new FileHashService(context))
+                new ScannedLocation()
                 {
-                    ScannedLocation location = new ScannedLocation()
-                    {
-                        Path = "C:\\Foo"
-                    };
-                    await service.InsertScannedLocationAsync(location);
-                    location = new ScannedLocation()
-                    {
-                        Path = "C:\\Foobar"
-                    };
-                    await service.InsertScannedLocationAsync(location);
-                    location = new ScannedLocation()
-                    {
-                        Path = "C:\\Foo\\Bar"
-                    };
-                    await service.InsertScannedLocationAsync(location);
-
-                    // ACT
-                    await service.PurgeScannedLocationsAsync(locations);
-                    results = await service.ListScannedLocationsAsync();
-                    results.Sort();
-
-                    // Cleanup any remaining entities we created
-                    context.ScannedLocations.RemoveRange(context.ScannedLocations);
-                    await context.SaveChangesAsync();
+                    Path = "C:\\Foo"
+                },
+                new ScannedLocation()
+                {
+                    Path = "C:\\Foobar"
+                },
+                new ScannedLocation()
+                {
+                    Path = "C:\\Foo\\Bar"
                 }
-            }
+            };
+            List<ScannedFile> fileData = new List<ScannedFile>()
+            {
+                new ScannedFile()
+                {
+                    Name = "Foobar",
+                    Path = "C:\\Foo",
+                    Hash = new byte[32]
+                },
+                new ScannedFile()
+                {
+                    Name = "Foobar",
+                    Path = "C:\\Foobar",
+                    Hash = new byte[32]
+                },
+                new ScannedFile()
+                {
+                    Name = "Foobar",
+                    Path = "C:\\Foo\\Bar",
+                    Hash = new byte[32]
+                }
+            };
+            var files = new DataCache<ScannedFile>(fileData);
+            var locations = new DataCache<ScannedLocation>(locationData);
+            FileHashService service = new FileHashService(files, locations);
+
+
+            // ACT
+            await service.PurgeScannedLocationsAsync(locationData.Select(t => t.Path).ToList());
 
             // ASSERT
+            List<string> results = locationData.Select(t => t.Path).ToList();
             Assert.AreEqual(2, results.Count);
             Assert.AreEqual(results[0], "C:\\Foo\\Bar");
             Assert.AreEqual(results[1], "C:\\Foobar");
@@ -174,17 +199,15 @@ namespace FileHashRepository.Tests
         {
             // ARRANGE
             string searchPath = "C:\foobar.foo";
-
-            var mockSet = GetMockScannedFiles(3);
-
-            var mockContext = GetMockContext(mockSet.Object);
-
-            FileHashService service = new FileHashService(mockContext.Object);
+            var files = new Mock<IDataCache<ScannedFile>>();
+            var locations = new Mock<IDataCache<ScannedLocation>>();
+            FileHashService service = new FileHashService(files.Object, locations.Object);
 
             // ACT
             int result = await service.RemoveScannedFilesByFilePathAsync(searchPath);
 
             // ASSERT
+            // ToDo: Fix this test, this will likely be a false positive
             Assert.AreEqual(0, result);
         }
 
@@ -193,33 +216,15 @@ namespace FileHashRepository.Tests
         {
             // ARRANGE
             string searchPath = "C:\foobar.foo";
-            int removedEntities = 0;
-            var mockSet = GetMockScannedFiles(3);
-            UpdateMockScannedFileHash(mockSet.Object, 1, null, null, searchPath);
-
-            // Specify what the set does when RemoveRange() is called
-            mockSet.Setup(t => t.RemoveRange(It.IsAny<IEnumerable<ScannedFile>>())).Returns<IEnumerable<ScannedFile>>((entities) =>
-            {
-                removedEntities = entities.Count();
-                return entities;
-            });
-
-            // Create our Mock Context
-            var mockContext = GetMockContext(mockSet.Object);
-            mockContext.Setup(t => t.SaveChangesAsync()).ReturnsAsync(() =>
-            {
-                return removedEntities;
-            });
-
-            // Finally create our service and provide the mock context
-            FileHashService service = new FileHashService(mockContext.Object);
+            var files = new Mock<IDataCache<ScannedFile>>();
+            var locations = new Mock<IDataCache<ScannedLocation>>();
+            FileHashService service = new FileHashService(files.Object, locations.Object);
 
             // ACT
-            int count = await service.RemoveScannedFilesByFilePathAsync(searchPath);
+            int result = await service.RemoveScannedFilesByFilePathAsync(searchPath);
 
             // ASSERT
-            mockContext.Verify(t => t.SaveChangesAsync(), Times.Once());
-            Assert.AreEqual(1, count, "The number of items removed does not match what was expected.");
+            Assert.AreEqual(1, result, "The number of items removed does not match what was expected.");
         }
 
         [TestMethod]
@@ -227,51 +232,36 @@ namespace FileHashRepository.Tests
         {
             // ARRANGE
             string searchPath = "C:\foobar.foo";
-            int removedEntities = 0;
-            var mockSet = GetMockScannedFiles(5);
-            UpdateMockScannedFileHash(mockSet.Object, 1, null, null, searchPath);
-            UpdateMockScannedFileHash(mockSet.Object, 2, null, null, searchPath);
-            UpdateMockScannedFileHash(mockSet.Object, 3, null, null, searchPath);
-
-            // Specify what the set does when RemoveRange() is called
-            mockSet.Setup(t => t.RemoveRange(It.IsAny<IEnumerable<ScannedFile>>())).Returns<IEnumerable<ScannedFile>>((entities) =>
-            {
-                removedEntities = entities.Count();
-                return entities;
-            });
-
-            // Create our Mock Context
-            var mockContext = GetMockContext(mockSet.Object);
-            mockContext.Setup(t => t.SaveChangesAsync()).ReturnsAsync(() =>
-            {
-                return removedEntities;
-            });
-
-            // Finally create our service and provide the mock context
-            FileHashService service = new FileHashService(mockContext.Object);
+            var files = new Mock<IDataCache<ScannedFile>>();
+            var locations = new Mock<IDataCache<ScannedLocation>>();
+            FileHashService service = new FileHashService(files.Object, locations.Object);
 
             // ACT
-            int count = await service.RemoveScannedFilesByFilePathAsync(searchPath);
+            int result = await service.RemoveScannedFilesByFilePathAsync(searchPath);
 
             // ASSERT
-            mockContext.Verify(t => t.SaveChangesAsync(), Times.Once());
-            Assert.AreEqual(3, count, "The number of items removed does not match what was expected.");
+            Assert.AreEqual(3, result, "The number of items removed does not match what was expected.");
         }
 
         [TestMethod]
         public async Task ReturnDuplicatesAsync_NoDuplicateHashes_ReturnsEmptyList()
         {
             // ARRANGE
-            var mockSet = GetMockScannedFiles(3);
-            var mockContext = GetMockContext(mockSet.Object);
-            for (int i = 1; i <= 3; i++)
-            {
-                byte[] updatedBytes = new byte[32];
-                updatedBytes[0] = System.Convert.ToByte(i);
-                UpdateMockScannedFileHash(mockSet.Object, i, updatedBytes, null, null);
-            }
-
-            FileHashService service = new FileHashService(mockContext.Object);
+            var files = new Mock<IDataCache<ScannedFile>>();
+            var locations = new Mock<IDataCache<ScannedLocation>>();
+            FileHashService service = new FileHashService(files.Object, locations.Object);
+            files.Setup(t => t.ListData())
+                .Returns(() =>
+                {
+                    List<ScannedFile> scannedFiles = new List<ScannedFile>();
+                    for (int i = 1; i <= 3; i++)
+                    {
+                        byte[] updatedBytes = new byte[32];
+                        updatedBytes[0] = System.Convert.ToByte(i);
+                        scannedFiles[i].Hash = updatedBytes;
+                    }
+                    return scannedFiles.AsQueryable();
+                });
 
             // ACT
             List<ScannedFile> results = await service.ReturnDuplicatesAsync();
@@ -284,19 +274,25 @@ namespace FileHashRepository.Tests
         public async Task ReturnDuplicatesAsync_OneDuplicateHash_ReturnsTwoScannedFiles()
         {
             // ARRANGE
-            var mockSet = GetMockScannedFiles(3);
-            var mockContext = GetMockContext(mockSet.Object);
-            // Since ultimately the intended behavior of ReturnDuplicates is to build a LINQ to Entities 
-            // query, by using the same byte[] reference in our mockSet we can simulate the same behavior in the 
-            // GroupBy(entity.Hash) statement of our mock set without using an IEquityComparer (which would destroy 
-            // the intended behavior in the implementation). There may be other, better, ways around this limitation
-            // but I stumbled upon this solution by accident.
-            byte[] uniqueBytes = new byte[32];
-            uniqueBytes[1] = 0x01;
-            UpdateMockScannedFileHash(mockSet.Object, 1, uniqueBytes, null, null);
-            UpdateMockScannedFileHash(mockSet.Object, 2, uniqueBytes, null, null);
-
-            FileHashService service = new FileHashService(mockContext.Object);
+            var files = new Mock<IDataCache<ScannedFile>>();
+            var locations = new Mock<IDataCache<ScannedLocation>>();
+            FileHashService service = new FileHashService(files.Object, locations.Object);
+            files.Setup(t => t.ListData())
+                .Returns(() =>
+                {
+                    byte[] uniqueBytesOne = new byte[32];
+                    byte[] uniqueBytesTwo = new byte[32];
+                    List<ScannedFile> scannedFiles = new List<ScannedFile>()
+                    {
+                        new ScannedFile(), new ScannedFile(), new ScannedFile()
+                    };
+                    uniqueBytesOne[0] = 0x11;
+                    uniqueBytesTwo[0] = 0xFF;
+                    Array.Copy(uniqueBytesOne, scannedFiles[0].Hash, 32);
+                    Array.Copy(uniqueBytesOne, scannedFiles[1].Hash, 32);
+                    Array.Copy(uniqueBytesTwo, scannedFiles[2].Hash, 32);
+                    return scannedFiles.AsQueryable();
+                });
 
             // ACT
             List<ScannedFile> results = await service.ReturnDuplicatesAsync();
@@ -309,33 +305,34 @@ namespace FileHashRepository.Tests
         public async Task ReturnDuplicatesAsync_ManyDuplicateHash_ReturnsManyScannedFiles()
         {
             // ARRANGE
-            var mockSet = GetMockScannedFiles(10);
-            var mockContext = GetMockContext(mockSet.Object);
-            // Since ultimately the intended behavior of ReturnDuplicates is to build a LINQ to Entities 
-            // query, by using the same byte[] reference in our mockSet we can simulate the same behavior in the 
-            // GroupBy(entity.Hash) statement of our mock set without using an IEquityComparer (which would destroy 
-            // the intended behavior in the implementation). There may be other, better, ways around this limitation
-            // but I stumbled upon this solution by accident.
-            byte[] uniqueBytesOne = new byte[32];
-            byte[] uniqueBytesTwo = new byte[32];
-            uniqueBytesOne[1] = 0x01;
-            uniqueBytesTwo[2] = 0x02;
-            for (int i = 1; i <= 10; i++)
-            {
-                switch (i)
+            var files = new Mock<IDataCache<ScannedFile>>();
+            var locations = new Mock<IDataCache<ScannedLocation>>();
+            FileHashService service = new FileHashService(files.Object, locations.Object);
+            files.Setup(t => t.ListData())
+                .Returns(() =>
                 {
-                    case 1:
-                    case 2:
-                        UpdateMockScannedFileHash(mockSet.Object, i, uniqueBytesOne, null, null);
-                        break;
-                    case 3:
-                    case 4:
-                        UpdateMockScannedFileHash(mockSet.Object, i, uniqueBytesTwo, null, null);
-                        break;
-                }
-            }
-
-            FileHashService service = new FileHashService(mockContext.Object);
+                    byte[] uniqueBytesOne = new byte[32];
+                    byte[] uniqueBytesTwo = new byte[32];
+                    uniqueBytesOne[1] = 0x01;
+                    uniqueBytesTwo[2] = 0x02;
+                    List<ScannedFile> scannedFiles = new List<ScannedFile>();
+                    for (int i = 1; i <= 10; i++)
+                    {
+                        ScannedFile file = new ScannedFile();
+                        switch (i)
+                        {
+                            case 1:
+                            case 2:
+                                Array.Copy(uniqueBytesOne, file.Hash, 32);
+                                break;
+                            case 3:
+                            case 4:
+                                Array.Copy(uniqueBytesTwo, file.Hash, 32);
+                                break;
+                        }
+                    }
+                    return scannedFiles.AsQueryable();
+                });
 
             // ACT
             List<ScannedFile> results = await service.ReturnDuplicatesAsync();
@@ -348,19 +345,42 @@ namespace FileHashRepository.Tests
         public async Task ReturnDuplicatesAsync_ManyDuplicateHash_ReturnsSortedList()
         {
             // ARRANGE
-            var mockSet = GetMockScannedFiles(10);
-            var mockContext = GetMockContext(mockSet.Object);
-            /// Please see comment in <see cref="ReturnDuplicatesAsync_ManyDuplicateHash_ReturnsManyScannedFiles"/>
-            byte[] uniqueBytesOne = new byte[32];
-            byte[] uniqueBytesTwo = new byte[32];
-            uniqueBytesOne[1] = 0x01;
-            uniqueBytesTwo[2] = 0x02;
-            UpdateMockScannedFileHash(mockSet.Object, 1, uniqueBytesOne, "foo1", null);
-            UpdateMockScannedFileHash(mockSet.Object, 2, uniqueBytesTwo, "bar1", null);
-            UpdateMockScannedFileHash(mockSet.Object, 3, uniqueBytesTwo, "bar2", null);
-            UpdateMockScannedFileHash(mockSet.Object, 4, uniqueBytesOne, "foo2", null);
-
-            FileHashService service = new FileHashService(mockContext.Object);
+            var files = new Mock<IDataCache<ScannedFile>>();
+            var locations = new Mock<IDataCache<ScannedLocation>>();
+            FileHashService service = new FileHashService(files.Object, locations.Object);
+            files.Setup(t => t.ListData())
+                .Returns(() =>
+                {
+                    byte[] uniqueBytesOne = new byte[32];
+                    byte[] uniqueBytesTwo = new byte[32];
+                    uniqueBytesOne[1] = 0x01;
+                    uniqueBytesTwo[2] = 0x02;
+                    List<ScannedFile> scannedFiles = new List<ScannedFile>();
+                    for (int i = 1; i <= 10; i++)
+                    {
+                        ScannedFile file = new ScannedFile();
+                        switch (i)
+                        {
+                            case 1:
+                                file.Name = "foo1";
+                                Array.Copy(uniqueBytesOne, file.Hash, 32);
+                                break;
+                            case 2:
+                                file.Name = "bar1";
+                                Array.Copy(uniqueBytesTwo, file.Hash, 32);
+                                break;
+                            case 3:
+                                file.Name = "bar2";
+                                Array.Copy(uniqueBytesTwo, file.Hash, 32);
+                                break;
+                            case 4:
+                                file.Name = "foo2";
+                                Array.Copy(uniqueBytesOne, file.Hash, 32);
+                                break;
+                        }
+                    }
+                    return scannedFiles.AsQueryable();
+                });
 
             // ACT
             List<ScannedFile> results = await service.ReturnDuplicatesAsync();
@@ -369,57 +389,73 @@ namespace FileHashRepository.Tests
             Assert.AreEqual("foo2", results[1].Name, "The collection was not sorted as expected.");
         }
 
-
         [TestMethod]
         public async Task InsertScannedLocationAsync_InsertsScannedLocation()
         {
             // ARRANGE
-            var mockScannedFiles = GetMockScannedFiles(0);
-            var mockScannedLocations = GetMockScannedLocations(0);
-            var mockContext = GetMockContext(mockScannedFiles.Object, mockScannedLocations.Object);
-            FileHashService service = new FileHashService(mockContext.Object);
+            var files = new Mock<IDataCache<ScannedFile>>();
+            var locations = new Mock<IDataCache<ScannedLocation>>();
+            FileHashService service = new FileHashService(files.Object, locations.Object);
 
             // ACT
             await service.InsertScannedLocationAsync(new ScannedLocation()
             {
-                Path = "bar",
-                Id = 1
+                Path = "bar"
             });
 
             // ASSERT
-            mockScannedLocations.Verify(t => t.Add(It.IsAny<ScannedLocation>()), Times.Once());
-            mockContext.Verify(t => t.SaveChangesAsync(), Times.Once());
+            locations.Verify(t => t.InsertData(It.IsAny<ScannedLocation>()), Times.Once());
         }
 
         [TestMethod]
         public async Task InsertScannedLocationAsync_IgnoresDuplicateScannedLocation()
         {
             // ARRANGE
-            var mockScannedFiles = GetMockScannedFiles(0);
-            var mockScannedLocations = GetMockScannedLocations(1, "bar");
-            var mockContext = GetMockContext(mockScannedFiles.Object, mockScannedLocations.Object);
-            FileHashService service = new FileHashService(mockContext.Object);
+            var files = new Mock<IDataCache<ScannedFile>>();
+            var locations = new Mock<IDataCache<ScannedLocation>>();
+            FileHashService service = new FileHashService(files.Object, locations.Object);
+            locations.Setup(t => t.ListData())
+                .Returns(() =>
+                {
+                    List<ScannedLocation> scannedLocations = new List<ScannedLocation>()
+                    {
+                        new ScannedLocation()
+                        {
+                            Path = "bar"
+                        }
+                    };
+                    return scannedLocations.AsQueryable();
+                });
 
             // ACT
             await service.InsertScannedLocationAsync(new ScannedLocation()
             {
-                Path = "bar",
-                Id = 2
+                Path = "bar"
             });
 
             // ASSERT
-            mockScannedLocations.Verify(t => t.Add(It.IsAny<ScannedLocation>()), Times.Never());
-            mockContext.Verify(t => t.SaveChangesAsync(), Times.Never());
+            locations.Verify(t => t.InsertData(It.IsAny<ScannedLocation>()), Times.Once());
         }
 
         [TestMethod]
         public async Task ListScannedFilePathsAsync_ReturnsSingleFilePath()
         {
             // ARRANGE
-            var mockSet = GetMockScannedFiles(1);
-            var mockContext = GetMockContext(mockSet.Object);
-            UpdateMockScannedFileHash(mockSet.Object, 1, null, null, "testing");
-            FileHashService service = new FileHashService(mockContext.Object);
+            var files = new Mock<IDataCache<ScannedFile>>();
+            var locations = new Mock<IDataCache<ScannedLocation>>();
+            FileHashService service = new FileHashService(files.Object, locations.Object);
+            files.Setup(t => t.ListData())
+                .Returns(() =>
+                {
+                    List<ScannedFile> scannedFiles = new List<ScannedFile>()
+                    {
+                        new ScannedFile()
+                        {
+                            Path = "testing"
+                        }
+                    };
+                    return scannedFiles.AsQueryable();
+                });
 
             // ACT
             List<string> results = await service.ListScannedFilePathsAsync(null);
@@ -433,10 +469,22 @@ namespace FileHashRepository.Tests
         public async Task ListScannedFilePathsAsync_ReturnsManyFilePaths()
         {
             // ARRANGE
-            var mockSet = GetMockScannedFiles(3);
-            var mockContext = GetMockContext(mockSet.Object);
-            FileHashService service = new FileHashService(mockContext.Object);
-            UpdateMockScannedFileHash(mockSet.Object, 3, null, null, "testing");
+            var files = new Mock<IDataCache<ScannedFile>>();
+            var locations = new Mock<IDataCache<ScannedLocation>>();
+            FileHashService service = new FileHashService(files.Object, locations.Object);
+            files.Setup(t => t.ListData())
+                .Returns(() =>
+                {
+                    List<ScannedFile> scannedFiles = new List<ScannedFile>();
+                    for (int i = 0; i < 3; i++)
+                    {
+                        scannedFiles.Add(new ScannedFile()
+                        {
+                            Path = "testing"
+                        });
+                    }
+                    return scannedFiles.AsQueryable();
+                });
 
             // ACT
             List<string> results = await service.ListScannedFilePathsAsync(null);
@@ -447,221 +495,60 @@ namespace FileHashRepository.Tests
         }
 
         /// <summary>
-        /// This automates an end to end test of ListScannedFilePathsAsync method (including SQL). 
-        /// Remove the [Ignore] attribute to run this test.
+        /// This automates an end to end test of ListScannedFilePathsAsync method.
         /// </summary>
         [TestMethod]
-        [Ignore] // Ignore non Unit Tests
-        public async Task ListScannedFilePathsAsync_SqlQueryFiltersFiles()
+        public async Task ListScannedFilePathsAsync_FiltersFiles()
         {
             // ARRANGE
-            List<string> results;
-            List<string> locations = new List<string>()
+            var files = new Mock<IDataCache<ScannedFile>>();
+            var locations = new Mock<IDataCache<ScannedLocation>>();
+            FileHashService service = new FileHashService(files.Object, locations.Object);
+            files.Setup(t => t.ListData())
+                .Returns(() =>
+                {
+                    List<ScannedFile> scannedFiles = new List<ScannedFile>()
+                    {
+                        new ScannedFile()
+                        {
+                            Name = "Foobar",
+                            Path = "C:\\Foo\\Foobar"
+                        },
+                        new ScannedFile()
+                        {
+                            Name = "Foobar",
+                            Path = "C:\\Bar\\Foobar"
+                        },
+                        new ScannedFile()
+                        {
+                            Name = "Foobar",
+                            Path = "C:\\Foo\\Bar\\Foobar"
+                        },
+                        new ScannedFile()
+                        {
+                            Name = "Foobar",
+                            Path = "C:\\Foobar\\Foobar"
+                        },
+                        new ScannedFile()
+                        {
+                            Name = "Foobar",
+                            Path = "C:\\Foobar"
+                        }
+                    };
+                    return scannedFiles.AsQueryable();
+                });
+
+            // ACT
+            var results = await service.ListScannedFilePathsAsync(new List<string>()
             {
                 "C:\\Foo"
-            };
-            using (FileHashService service = new FileHashService(new FileHashEntities()))
-            {
-                await InsertScannedFileAsync(service, new byte[32], "Foobar", "C:\\Foo\\Foobar");
-                await InsertScannedFileAsync(service, new byte[32], "Foobar", "C:\\Bar\\Foobar");
-                await InsertScannedFileAsync(service, new byte[32], "Foobar", "C:\\Foo\\Bar\\Foobar");
-                await InsertScannedFileAsync(service, new byte[32], "Foobar", "C:\\Foobar\\Foobar");
-                await InsertScannedFileAsync(service, new byte[32], "Foobar", "C:\\Foobar");
+            });
 
-                // ACT
-                results = await service.ListScannedFilePathsAsync(locations);
-
-                // Cleanup the entities we created
-                await service.PurgeScannedLocationsAsync(null);
-            }
-            results.Sort();
 
             // ASSERT
             Assert.AreEqual(2, results.Count);
             Assert.AreEqual("C:\\Foo\\Bar\\Foobar", results[0]);
             Assert.AreEqual("C:\\Foo\\Foobar", results[1]);
-        }
-
-        [TestMethod]
-        public void Dispose_CallsDisposeOnContext()
-        {
-            // ARRANGE
-            FileHashEntities context = new FileHashEntities();
-            FileHashService service = new FileHashService(context);
-
-            // ACT
-            service.Dispose();
-
-            // ASSERT
-            Assert.IsTrue(IsContextDisposed(context), "The FileHashEntities context is not disposed.");
-        }
-
-        /// <summary>
-        /// Helper method to return a new Mock of ScannedFiles
-        /// </summary>
-        /// <param name="count">The number of items in the (implemented) collection</param>
-        /// <returns>A Mock wrapper of a DbSet of ScannedFiles with repeated setup</returns>
-        private Mock<DbSet<ScannedFile>> GetMockScannedFiles(int count, string name = "foo", string path="bar")
-        {
-            List<ScannedFile> data = new List<ScannedFile>();
-            for(int i = 1; i <= count; i++)
-            {
-                data.Add(new ScannedFile
-                {
-                    Id = i,
-                    Name = name,
-                    Path = path,
-                    Hash = new byte[32]
-                });
-            }
-            IQueryable<ScannedFile> dataAsQueryable = data.AsQueryable();
-
-            // Create our Mock DbSet
-            Mock<DbSet<ScannedFile>> mockSet = new Mock<DbSet<ScannedFile>>();
-            
-            // The following should allow our mock set to be queryable from the mock context
-            mockSet.As<IDbAsyncEnumerable<ScannedFile>>()
-                    .Setup(t => t.GetAsyncEnumerator())
-                    .Returns(new MockDbAsyncEnumerator<ScannedFile>(data.GetEnumerator()));
-
-            mockSet.As<IQueryable<ScannedFile>>()
-                    .Setup(t => t.Provider)
-                    .Returns(new MockDbAsyncQueryProvider<ScannedFile>(dataAsQueryable.Provider));
-
-            mockSet.As<IQueryable<ScannedFile>>().Setup(t => t.Expression).Returns(dataAsQueryable.Expression);
-            mockSet.As<IQueryable<ScannedFile>>().Setup(t => t.ElementType).Returns(dataAsQueryable.ElementType);
-            mockSet.As<IQueryable<ScannedFile>>().Setup(t => t.GetEnumerator()).Returns(dataAsQueryable.GetEnumerator());
-
-            return mockSet;
-        }
-
-        /// <summary>
-        /// Helper method to return a new Mock of ScannedLocations
-        /// </summary>
-        /// <param name="count">The number of items in the (implemented) collection</param>
-        /// <returns>A Mock wrapper of the DbSet of ScannedLocations with repeated setup</returns>
-        private Mock<DbSet<ScannedLocation>> GetMockScannedLocations(int count, string path="bar")
-        {
-            List<ScannedLocation> data = new List<ScannedLocation>();
-            for (int i = 1; i <= count; i++)
-            {
-                data.Add(new ScannedLocation
-                {
-                    Id = i,
-                    Path = path
-                });
-            }
-            IQueryable<ScannedLocation> dataAsQueryable = data.AsQueryable();
-
-            // Create our Mock DbSet
-            Mock<DbSet<ScannedLocation>> mockSet = new Mock<DbSet<ScannedLocation>>();
-
-            // The following should allow our mock set to be queryable from the mock context
-            mockSet.As<IDbAsyncEnumerable<ScannedLocation>>()
-                    .Setup(t => t.GetAsyncEnumerator())
-                    .Returns(new MockDbAsyncEnumerator<ScannedLocation>(data.GetEnumerator()));
-
-            mockSet.As<IQueryable<ScannedLocation>>()
-                    .Setup(t => t.Provider)
-                    .Returns(new MockDbAsyncQueryProvider<ScannedLocation>(dataAsQueryable.Provider));
-
-            mockSet.As<IQueryable<ScannedLocation>>().Setup(t => t.Expression).Returns(dataAsQueryable.Expression);
-            mockSet.As<IQueryable<ScannedLocation>>().Setup(t => t.ElementType).Returns(dataAsQueryable.ElementType);
-            mockSet.As<IQueryable<ScannedLocation>>().Setup(t => t.GetEnumerator()).Returns(dataAsQueryable.GetEnumerator());
-
-            return mockSet;
-        }
-
-        /// <summary>
-        /// Helper method to return a new Mock of FileHashEntities
-        /// </summary>
-        /// <param name="scannedFiles">The ScannedFile dbSet to construct the context with </param>
-        /// <returns>A new FileHashEntities dbContext</returns>
-        private Mock<FileHashEntities> GetMockContext(DbSet<ScannedFile> scannedFiles) 
-        {
-            return GetMockContext(scannedFiles, null);
-        }
-
-        /// <summary>
-        /// Helper method to return a new Mock of FileHashEntities
-        /// </summary>
-        /// <param name="scannedFiles">The ScannedFile dbSet to construct the context with </param>
-        /// <param name="scannedLocations">The ScannedLocation dbSet to construct the context with</param>
-        /// <returns>A new FileHashEntities dbContext</returns>
-        private Mock<FileHashEntities> GetMockContext(DbSet<ScannedFile> scannedFiles, DbSet<ScannedLocation> scannedLocations)
-        {
-            Mock<FileHashEntities> mockContext = new Mock<FileHashEntities>();
-            mockContext.Setup(t => t.ScannedFiles).Returns(scannedFiles);
-            mockContext.Setup(t => t.ScannedLocations).Returns(scannedLocations);
-            return mockContext;
-        }
-
-        /// <summary>
-        /// Helper method to update the contents of a ScannedFile Hash by Id
-        /// </summary>
-        /// <param name="dbSet">The DbSet of ScannedFiles to query the id against</param>
-        /// <param name="id">The Id of the ScannedFile as defined in the dbSet to update the hash</param>
-        /// <param name="data">The byte array will replace the Hash on the ScannedFile</param>
-        /// <param name="name">The file name that will replace the Name on the ScannedFile</param>
-        /// <param name="path">The path that will replace the Path on the ScannedFile</param>
-        private void UpdateMockScannedFileHash(DbSet<ScannedFile> dbSet, int id, byte[] data, string name, string path)
-        {
-            ScannedFile file = dbSet.Single(t => t.Id.Equals(id));
-            if (data != null)
-            {
-                file.Hash = data;
-            }
-            if (name != null)
-            {
-                file.Name = name;
-            }
-            if (path != null)
-            {
-                file.Path = path;
-            }
-        }
-
-        /// <summary>
-        /// Helper method to simplify inserting new ScannedFile entities to the FileHashService
-        /// </summary>
-        /// <param name="service">The FileHashService instance to call InsertScannedFileAsync() on</param>
-        /// <param name="hash">A length 32 byte[] that contains the file hash</param>
-        /// <param name="name">The name of the file</param>
-        /// <param name="path">The file path of the file</param>
-        private async Task InsertScannedFileAsync(FileHashService service, byte[] hash, string name, string path)
-        {
-            ScannedFile file = new ScannedFile()
-            {
-                Hash = hash,
-                Name = name,
-                Path = path
-            };
-            await service.InsertScannedFileAsync(file);
-        }
-
-        /// <summary>
-        /// Use reflection to determine if the provided DbContext is already disposed
-        /// </summary>
-        /// <param name="context">The DbContext to test</param>
-        private bool IsContextDisposed(DbContext context)
-        {
-            // https://pholpar.wordpress.com/2017/11/29/how-to-detect-if-your-dbconext-is-already-disposed/
-            bool result = true;
-
-            Type typeDbContext = typeof(DbContext);
-            Type typeInternalContext = typeDbContext.Assembly.GetType("System.Data.Entity.Internal.InternalContext");
-
-            var fi_InternalContext = typeDbContext.GetField("_internalContext", System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance);
-            var pi_IsDisposed = typeInternalContext.GetProperty("IsDisposed");
-
-            var ic = fi_InternalContext.GetValue(context);
-
-            if (ic != null)
-            {
-                result = (bool)pi_IsDisposed.GetValue(ic);
-            }
-
-            return result;
         }
     }
 }

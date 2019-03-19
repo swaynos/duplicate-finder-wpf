@@ -1,7 +1,6 @@
 ﻿using FileHashRepository.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
 using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
@@ -12,7 +11,7 @@ namespace FileHashRepository
 {
     public class ScannedFileStore : IScannedFileStore
     {
-        private IFileHashServiceFactory _factory;
+        private IFileHashService _service;
 
         private IFileSystem _fileSystem;
 
@@ -21,13 +20,13 @@ namespace FileHashRepository
         /// </summary>
         /// <param name="fileSystem">The IFileSystem to use</param>
         /// <param name="fileHashServiceFactory">The IFileHashServiceFactory to use</param>
-        internal ScannedFileStore(IFileSystem fileSystem, IFileHashServiceFactory factory)
+        internal ScannedFileStore(IFileSystem fileSystem, IFileHashService service)
         {
-            _factory = factory;
+            _service = service;
             _fileSystem = fileSystem;
         }
 
-        public ScannedFileStore() : this(new FileSystem(), new FileHashServiceFactory())
+        public ScannedFileStore(IFileHashService service) : this(new FileSystem(), service)
         {
         }
 
@@ -37,10 +36,7 @@ namespace FileHashRepository
         /// <returns>A collection of all previously scanned locations</returns>
         public async Task<List<string>> ListScannedLocationsAsync()
         {
-            using (IFileHashService service = _factory.GetFileHashService())
-            {
-                return await service.ListScannedLocationsAsync();
-            }
+             return await _service.ListScannedLocationsAsync();
         }
 
         /// <summary>
@@ -51,10 +47,7 @@ namespace FileHashRepository
         public async Task PurgeLocationsAsync(List<string> locationPaths)
         {
             // Purge all existing records from storage at these location paths
-            using (IFileHashService service = _factory.GetFileHashService())
-            {
-                await service.PurgeScannedLocationsAsync(locationPaths);
-            }
+            await _service.PurgeScannedLocationsAsync(locationPaths);
         }
 
         /// <summary>
@@ -65,11 +58,8 @@ namespace FileHashRepository
         public async Task ScanLocationsAsync(List<string> locationPaths, IProgress<int> progress)
         {
             // Purge all existing records from storage at these location paths
-            using (IFileHashService service = _factory.GetFileHashService())
-            {
-                await service.PurgeScannedLocationsAsync(locationPaths);
-            }
-
+            await _service.PurgeScannedLocationsAsync(locationPaths);
+            
             // Get all files from the location path
             List<string> files = new List<string>();
             foreach (string locationPath in locationPaths)
@@ -85,15 +75,12 @@ namespace FileHashRepository
             }
 
             // Insert the scanned locations
-            using (IFileHashService service = _factory.GetFileHashService())
+            foreach (string locationPath in locationPaths)
             {
-                foreach (string locationPath in locationPaths)
+                await _service.InsertScannedLocationAsync(new ScannedLocation()
                 {
-                    await service.InsertScannedLocationAsync(new ScannedLocation()
-                    {
-                        Path = locationPath
-                    });
-                }
+                    Path = locationPath
+                });
             }
         }
 
@@ -116,10 +103,7 @@ namespace FileHashRepository
             // Retrieve all existing scanned file records at these locations from storage
             retrieveStoredFiles = async () =>
             {
-                using (IFileHashService service = _factory.GetFileHashService())
-                {
-                    storedFiles = await service.ListScannedFilePathsAsync(locationPaths);
-                }
+                storedFiles = await _service.ListScannedFilePathsAsync(locationPaths);
             };
 
             retrieveFiles = async () =>
@@ -152,15 +136,12 @@ namespace FileHashRepository
             }
 
             // Insert the scanned locations
-            using (IFileHashService service = _factory.GetFileHashService())
+            foreach (string locationPath in locationPaths)
             {
-                foreach (string locationPath in locationPaths)
+                await _service.InsertScannedLocationAsync(new ScannedLocation()
                 {
-                    await service.InsertScannedLocationAsync(new ScannedLocation()
-                    {
-                        Path = locationPath
-                    });
-                }
+                    Path = locationPath
+                });
             }
         }
 
@@ -185,10 +166,7 @@ namespace FileHashRepository
         /// <returns>The List of ScannedFile entities with duplicates.</returns>
         public async Task<List<ScannedFile>> ListDuplicateFilesAsync()
         {
-            using (IFileHashService service = _factory.GetFileHashService())
-            {
-                return await service.ReturnDuplicatesAsync();
-            }
+            return await _service.ReturnDuplicatesAsync();
         }
 
         /// <summary>
@@ -206,10 +184,7 @@ namespace FileHashRepository
                 scannedFile.Name = _fileSystem.Path.GetFileName(filePath);
                 scannedFile.Path = _fileSystem.Path.GetFullPath(filePath);
                 scannedFile.Hash = await fileHash.ComputeFileHashAsync(filePath);
-                using (IFileHashService service = _factory.GetFileHashService())
-                {
-                    await service.InsertScannedFileAsync(scannedFile);
-                }
+                await _service.InsertScannedFileAsync(scannedFile);
             }
             if (progress != null)
             {
@@ -227,10 +202,8 @@ namespace FileHashRepository
         /// Progress is updated with the following formula index * 100 / totalCount</param>
         internal async Task RemoveFile(string filePath, IProgress<int> progress, int index, int totalCount)
         {
-            using (IFileHashService service = _factory.GetFileHashService())
-            {
-                await service.RemoveScannedFilesByFilePathAsync(filePath);
-            }
+            await _service.RemoveScannedFilesByFilePathAsync(filePath);
+
             if (progress != null)
             {
                 progress.Report(index * 100 / totalCount);

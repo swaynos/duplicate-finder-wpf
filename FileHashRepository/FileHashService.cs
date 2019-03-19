@@ -1,8 +1,6 @@
 ﻿using FileHashRepository.Utilities;
 using System;
 using System.Collections.Generic;
-using System.Data.Entity;
-using System.Data.Entity.Infrastructure;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -11,16 +9,19 @@ namespace FileHashRepository
 {
     public class FileHashService : IFileHashService
     {
-        private FileHashEntities _context;
+        private IDataCache<ScannedFile> _scannedFiles;
 
-        public FileHashService(FileHashEntities context)
-        {
-            _context = context;
-        }
+        private IDataCache<ScannedLocation> _scannedLocations;
 
-        public void Dispose()
+        /// <summary>
+        /// Create a new FileHashService with provided data caches.
+        /// </summary>
+        /// <param name="scannedFiles">The data cache of scanned files to use</param>
+        /// <param name="scannedLocations">The data cache of scanned locations to use</param>
+        public FileHashService(IDataCache<ScannedFile> scannedFiles, IDataCache<ScannedLocation> scannedLocations)
         {
-            _context.Dispose();
+            _scannedFiles = scannedFiles;
+            _scannedLocations = scannedLocations;
         }
 
         /// <summary>
@@ -31,8 +32,7 @@ namespace FileHashRepository
         {
             if(!await ScannedFilesContains(scannedFile))
             {
-                _context.ScannedFiles.Add(scannedFile);
-                await _context.SaveChangesAsync();
+                _scannedFiles.InsertData(scannedFile);
             }
         }
 
@@ -44,8 +44,7 @@ namespace FileHashRepository
         {
             if (!await ScannedLocationsContains(scannedLocation))
             {
-                _context.ScannedLocations.Add(scannedLocation);
-                await _context.SaveChangesAsync();
+                _scannedLocations.InsertData(scannedLocation);
             }
         }
 
@@ -54,30 +53,30 @@ namespace FileHashRepository
         /// </summary>
         /// <param name="locationPaths">Optional: The location to return scanned files from.
         /// <para>If null everything will be returned.</para>
-        /// <para>If empty an empty List will be returned.</para>
+        /// <para>If empty, an empty List will be returned.</para>
         /// </param>
         /// <returns>A List of strings which contain the ScannedFile.Path's</returns>
         public async Task<List<string>> ListScannedFilePathsAsync(List<string> locationPaths)
         {
+            // ToDo: Not an async method
             List<string> scannedFilePaths;
-            const string query = @"SELECT A.[Path] FROM 
-                    (SELECT
-                    Left([Path], LEN([Path]) - CHARINDEX('\', REVERSE([Path]))) As [Directory],
-                    [Path] as [Path]
-                    FROM [dbo].[ScannedFiles]) A
-                WHERE A.[Directory] = '{0}' OR A.[Directory] Like '{0}\%'";
 
             if (locationPaths == null)
             {
-                scannedFilePaths = await _context.ScannedFiles.Select(t => t.Path).ToListAsync();
+                scannedFilePaths =  _scannedFiles.ListData().Select(t => t.Path).ToList();
+            }
+            else if (locationPaths.Count == 0)
+            {
+                scannedFilePaths = new List<string>();
             }
             else
             {
-                scannedFilePaths = new List<string>();
-                foreach (string locationPath in locationPaths)
-                {
-                    scannedFilePaths.AddRange(_context.Database.SqlQuery<string>(SqlQuery.FormatSqlQuery(query, locationPath)).AsEnumerable());
-                }
+                // ToDo: Do we want a full string compare, or begins with?
+                // Is this the best LINQ query possible?
+                scannedFilePaths =  _scannedFiles.ListData()
+                    .Where(t => locationPaths.Contains(t.Path))
+                    .Select(t => t.Path)
+                    .ToList();
             }
 
             return scannedFilePaths;
@@ -89,7 +88,8 @@ namespace FileHashRepository
         /// <returns>A List of strings which contain the ScannedLocation.Path's</returns>
         public async Task<List<string>> ListScannedLocationsAsync()
         {
-            return await _context.ScannedLocations.Select(t => t.Path).ToListAsync();
+            // ToDo: Not an async method
+            return _scannedLocations.ListData().Select(t => t.Path).ToList();
         }
 
         /// <summary>
@@ -100,28 +100,18 @@ namespace FileHashRepository
         /// <para>If empty, nothing will be purged.</para></param>
         public async Task PurgeScannedLocationsAsync(List<string> locationPaths)
         {
-            IQueryable<ScannedLocation> scannedLocations;
-            const string command = @"DELETE FROM [dbo].[ScannedFiles] 
-                WHERE Left([Path], LEN([Path]) - CHARINDEX('\', REVERSE([Path]))) = '{0}'
-                OR  Left([Path], LEN([Path]) - CHARINDEX('\', REVERSE([Path]))) Like '{0}\%'";
-
+            // ToDo: No longer async
             if (locationPaths == null)
             {
-                scannedLocations = _context.ScannedLocations;
-                _context.ScannedFiles.RemoveRange(_context.ScannedFiles);
+                _scannedFiles.PurgeData(_scannedFiles.ListData());
             }
             else
             {
-                scannedLocations = _context.ScannedLocations.Where(t => locationPaths.Contains(t.Path));
-                foreach(string locationPath in locationPaths)
-                {
-                    _context.Database.ExecuteSqlCommand(SqlQuery.FormatSqlQuery(command, locationPath));
-                }
+                // ToDo: Do we want a full string compare, or begins with?
+                // Is this the best LINQ query possible?
+                IQueryable<ScannedLocation> scannedLocations = _scannedLocations.ListData().Where(t => locationPaths.Contains(t.Path));
+                _scannedLocations.PurgeData(scannedLocations);
             }
-
-            _context.ScannedLocations.RemoveRange(scannedLocations);
-
-            await _context.SaveChangesAsync();
         }
 
         /// <summary>
@@ -131,10 +121,11 @@ namespace FileHashRepository
         /// <returns>The number of ScannedFiles removed</returns>
         public async Task<int> RemoveScannedFilesByFilePathAsync(string filePath)
         {
-            IQueryable<ScannedFile> scannedFiles = _context.ScannedFiles.Where(t => t.Path.Equals(filePath));
-            _context.ScannedFiles.RemoveRange(scannedFiles);
-            int savedChanges = await _context.SaveChangesAsync();
-            return savedChanges;
+            // ToDo: Not an async method
+            IQueryable<ScannedFile> scannedFiles = _scannedFiles.ListData().Where(t => t.Path.Equals(filePath));
+            int removedRecords =  scannedFiles.Count(); // ToDo: This is unnecessary
+            _scannedFiles.PurgeData(scannedFiles);
+            return removedRecords;
         }
 
         /// <summary>
@@ -144,12 +135,13 @@ namespace FileHashRepository
         /// <returns>A list of ScannedFile entities</returns>
         public async Task<List<ScannedFile>> ReturnDuplicatesAsync()
         {
+            // ToDo: Not an async method
             IQueryable<ScannedFile> scannedFiles = 
-                _context.ScannedFiles
+                _scannedFiles.ListData()
                     .GroupBy(t => t.Hash)
                     .Where(t => t.Count() > 1)
                     .SelectMany(group => group);
-            return await scannedFiles.ToListAsync();
+            return scannedFiles.ToList();
         }
 
         /// <summary>
@@ -162,7 +154,7 @@ namespace FileHashRepository
             Task<bool> task = Task.Run(() =>
             {
                 bool contains = false;
-                foreach (ScannedFile contextScannedFile in _context.ScannedFiles)
+                foreach (ScannedFile contextScannedFile in _scannedFiles.ListData())
                 {
                     contains |= contextScannedFile.Equals(scannedFile);
                 }
@@ -182,7 +174,7 @@ namespace FileHashRepository
             Task<bool> task = Task.Run(() =>
             {
                 bool contains = false;
-                foreach (ScannedLocation contextScannedLocation in _context.ScannedLocations)
+                foreach (ScannedLocation contextScannedLocation in _scannedLocations.ListData())
                 {
                     contains |= contextScannedLocation.Equals(scannedLocation);
                 }

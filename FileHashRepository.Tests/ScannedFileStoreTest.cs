@@ -2,6 +2,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using System;
+using System.Linq;
 using System.Collections.Generic;
 using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
@@ -17,14 +18,14 @@ namespace FileHashRepository.Tests
         {
             // ARRANGE
             MockFileSystem fileSystem = new MockFileSystem();
-            MockFileHashServiceFactory factory = new MockFileHashServiceFactory();
-            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, factory);
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
 
             // ACT
             List<string> results = await scannedFileStore.ListScannedLocationsAsync();
 
             // ASSERT
-            factory.MockFileHashService.Verify(t => t.ListScannedLocationsAsync(), Times.Once());
+            service.Verify(t => t.ListScannedLocationsAsync(), Times.Once());
         }
 
         [TestMethod]
@@ -35,18 +36,24 @@ namespace FileHashRepository.Tests
             dictionaryMockFileData.Add(@"C:\foobar\file1.txt", new MockFileData("This is a test file."));
             dictionaryMockFileData.Add(@"C:\foobar\file2.txt", new MockFileData("This is another test file."));
             MockFileSystem fileSystem = new MockFileSystem(dictionaryMockFileData);
-            MockFileHashServiceFactory factory = new MockFileHashServiceFactory();
-            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, factory);
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
             List<string> locations = new List<string>()
             {
                 @"C:\foobar"
             };
+            List<ScannedFile> scannedFiles = new List<ScannedFile>();
+            service.Setup(t => t.InsertScannedFileAsync(It.IsAny<ScannedFile>()))
+                .Callback<ScannedFile>(file =>
+                {
+                    scannedFiles.Add(file);
+                });
 
             // ACT
             await scannedFileStore.ScanLocationsAsync(locations, new MockScannedFileStoreProgress());
 
             // ASSERT
-            Assert.AreEqual(factory.ScannedFiles.Count, 2);
+            Assert.AreEqual(scannedFiles.Count, 2);
         }
 
         [TestMethod]
@@ -65,8 +72,8 @@ namespace FileHashRepository.Tests
                 addFileDelegate(i);
             }
             MockFileSystem fileSystem = new MockFileSystem(dictionaryMockFileData);
-            MockFileHashServiceFactory factory = new MockFileHashServiceFactory();
-            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, factory);
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
             MockScannedFileStoreProgress progress = new MockScannedFileStoreProgress();
             List<string> locations = new List<string>()
             {
@@ -90,14 +97,14 @@ namespace FileHashRepository.Tests
             Dictionary<string, MockFileData> dictionaryMockFileData = new Dictionary<string, MockFileData>();
             dictionaryMockFileData.Add(@"C:\foobar\file.txt", new MockFileData("This is a test file{0}."));
             MockFileSystem fileSystem = new MockFileSystem(dictionaryMockFileData);
-            MockFileHashServiceFactory factory = new MockFileHashServiceFactory();
-            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, factory);
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
             MockScannedFileStoreProgress progress = new MockScannedFileStoreProgress();
             List<string> locations = new List<string>()
             {
                 @"C:\foobar"
             };
-            factory.MockFileHashService.Setup(t => t.InsertScannedLocationAsync(It.IsAny<ScannedLocation>()))
+            service.Setup(t => t.InsertScannedLocationAsync(It.IsAny<ScannedLocation>()))
                 .Returns(Task.CompletedTask)
                 .Callback((ScannedLocation s) => { scannedLocations.Add(s); });
 
@@ -115,8 +122,8 @@ namespace FileHashRepository.Tests
             Dictionary<string, MockFileData> dictionaryMockFileData = new Dictionary<string, MockFileData>();
             dictionaryMockFileData.Add(@"C:\foobar\file.txt", new MockFileData("This is a test file{0}."));
             MockFileSystem fileSystem = new MockFileSystem(dictionaryMockFileData);
-            MockFileHashServiceFactory factory = new MockFileHashServiceFactory();
-            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, factory);
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
             MockScannedFileStoreProgress progress = new MockScannedFileStoreProgress();
             List<string> locations = new List<string>()
             {
@@ -127,7 +134,7 @@ namespace FileHashRepository.Tests
             await scannedFileStore.ScanLocationsAsync(locations, progress);
 
             // ASSERT
-            factory.MockFileHashService.Verify(t => t.PurgeScannedLocationsAsync(It.IsAny<List<string>>()));
+            service.Verify(t => t.PurgeScannedLocationsAsync(It.IsAny<List<string>>()));
         }
 
         [TestMethod]
@@ -138,8 +145,8 @@ namespace FileHashRepository.Tests
             dictionaryMockFileData.Add(@"C:\foobar\file1.txt", new MockFileData("This is a test file."));
             dictionaryMockFileData.Add(@"C:\foobar\file2.txt", new MockFileData("This is another test file."));
             MockFileSystem fileSystem = new MockFileSystem(dictionaryMockFileData);
-            MockFileHashServiceFactory factory = new MockFileHashServiceFactory();
-            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, factory);
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
             MockScannedFileStoreProgress progress = new MockScannedFileStoreProgress();
             List<string> locations = new List<string>()
             {
@@ -150,7 +157,7 @@ namespace FileHashRepository.Tests
             await scannedFileStore.RescanLocationsAsync(locations, progress);
 
             // ASSERT
-            Assert.AreEqual(factory.ScannedFiles.Count, 2);
+            service.Verify(t => t.InsertScannedFileAsync(It.IsAny<ScannedFile>()), Times.Exactly(2), "The correct number of files were not inserted.");
         }
 
         [TestMethod]
@@ -159,23 +166,9 @@ namespace FileHashRepository.Tests
             // ARRANGE
             MockFileSystem fileSystem = new MockFileSystem();
             fileSystem.AddDirectory(@"C:\foobar");
-            MockFileHashServiceFactory factory = new MockFileHashServiceFactory();
-            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, factory);
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
             MockScannedFileStoreProgress progress = new MockScannedFileStoreProgress();
-            factory.ScannedFiles.Add(new ScannedFile()
-            {
-                Id = 1,
-                Name = "foo.bar",
-                Path = @"C:\foobar\foo.bar",
-                Hash = new byte[32]
-            });
-            factory.ScannedFiles.Add(new ScannedFile()
-            {
-                Id = 2,
-                Name = "foobar.foo",
-                Path = @"C:\foobar\foobar.foo",
-                Hash = new byte[32]
-            });
             List<string> locations = new List<string>()
             {
                 @"C:\foobar"
@@ -185,7 +178,7 @@ namespace FileHashRepository.Tests
             await scannedFileStore.RescanLocationsAsync(locations, progress);
 
             // ASSERT
-            Assert.AreEqual(factory.ScannedFiles.Count, 0);
+            service.Verify(t => t.RemoveScannedFilesByFilePathAsync(It.Is<string>(s => s.Equals(@"C:\foobar"))));
         }
 
         [TestMethod]
@@ -193,9 +186,10 @@ namespace FileHashRepository.Tests
         {
             Dictionary<string, MockFileData> dictionaryMockFileData = new Dictionary<string, MockFileData>();
             MockFileSystem fileSystem = new MockFileSystem(dictionaryMockFileData);
-            MockFileHashServiceFactory factory = new MockFileHashServiceFactory();
-            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, factory);
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
             MockScannedFileStoreProgress progress = new MockScannedFileStoreProgress();
+            List<ScannedFile> scannedFiles = new List<ScannedFile>();
             Action<int> addFileDelegate = (int id) =>
             {
                 string path = string.Format(@"C:\foobar\file{0}.txt", id);
@@ -208,9 +202,8 @@ namespace FileHashRepository.Tests
                 string name = string.Format("oldfile{0}.txt", id);
                 byte[] hash = new byte[32];
                 hash[0] = System.Convert.ToByte(id);
-                factory.ScannedFiles.Add(new ScannedFile()
+                scannedFiles.Add(new ScannedFile()
                 {
-                    Id = id,
                     Path = path,
                     Name = name,
                     Hash = hash
@@ -222,6 +215,11 @@ namespace FileHashRepository.Tests
                 addFileDelegate(i);
                 addFileRemovalDelegate(i);
             }
+            service.Setup(t => t.ListScannedFilePathsAsync(It.IsAny<List<string>>()))
+                .ReturnsAsync((List<string> locs) =>
+                {
+                    return scannedFiles.Select(t => t.Path).ToList();
+                });
             List<string> locations = new List<string>()
             {
                 @"C:\foobar"
@@ -244,14 +242,14 @@ namespace FileHashRepository.Tests
             Dictionary<string, MockFileData> dictionaryMockFileData = new Dictionary<string, MockFileData>();
             dictionaryMockFileData.Add(@"C:\foobar\file.txt", new MockFileData("This is a test file{0}."));
             MockFileSystem fileSystem = new MockFileSystem(dictionaryMockFileData);
-            MockFileHashServiceFactory factory = new MockFileHashServiceFactory();
-            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, factory);
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
             MockScannedFileStoreProgress progress = new MockScannedFileStoreProgress();
             List<string> locations = new List<string>()
             {
                 @"C:\foobar"
             };
-            factory.MockFileHashService.Setup(t => t.InsertScannedLocationAsync(It.IsAny<ScannedLocation>()))
+            service.Setup(t => t.InsertScannedLocationAsync(It.IsAny<ScannedLocation>()))
                 .Returns(Task.CompletedTask)
                 .Callback((ScannedLocation s) => { scannedLocations.Add(s); });
 
@@ -267,18 +265,16 @@ namespace FileHashRepository.Tests
         {
             // ARRANGE
             MockFileSystem fileSystem = new MockFileSystem();
-            MockFileHashServiceFactory factory = new MockFileHashServiceFactory();
-            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, factory);
-            factory.ScannedFiles = new List<ScannedFile>()
-            {
-                new ScannedFile()
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
+            service.Setup(t => t.ListScannedFilePathsAsync(It.IsAny<List<string>>()))
+                .ReturnsAsync((List<string> locs) =>
                 {
-                    Hash = new byte[32],
-                    Id = 1,
-                    Name = "FooBar.png",
-                    Path = "X:\\Foo\\Bar\\FooBar.png"
-                }
-            };
+                    return new List<string>()
+                    {
+                        "X:\\Foo\\Bar\\FooBar.png"
+                    };
+                });
 
             // ACT
             List<ScannedFile> results = await scannedFileStore.ListDuplicateFilesAsync();
@@ -299,8 +295,8 @@ namespace FileHashRepository.Tests
             dictionaryMockFileData.Add(@"C:\foobar\file1.txt", new MockFileData("This is a test file."));
             dictionaryMockFileData.Add(@"C:\foobar\file2.txt", new MockFileData("This is another test file."));
             MockFileSystem fileSystem = new MockFileSystem(dictionaryMockFileData);
-            MockFileHashServiceFactory factory = new MockFileHashServiceFactory();
-            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, factory);
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
             List<string> newLocations = new List<string>()
             {
                 @"C:\foobar"
@@ -312,7 +308,7 @@ namespace FileHashRepository.Tests
             await scannedFileStore.RescanLocationsAsync(previousLocations, new MockScannedFileStoreProgress());
 
             // ASSERT
-            Assert.AreEqual(factory.ScannedFiles.Count, 2);
+            service.Verify(t => t.RemoveScannedFilesByFilePathAsync(It.IsAny<string>()), Times.Never, "Files were removed when not expected.");
         }
 
         [TestMethod]
@@ -320,32 +316,31 @@ namespace FileHashRepository.Tests
         {
             // ARRANGE
             MockFileSystem fileSystem = new MockFileSystem();
-            MockFileHashServiceFactory factory = new MockFileHashServiceFactory();
-            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, factory);
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
             List<string> purgeLocations = new List<string>()
             {
                 @"C:\foobar"
             };
-            factory.ScannedFiles.Add(new ScannedFile()
-            {
-                Id = 1,
-                Name = "foo.bar",
-                Path = @"C:\foobar\foo.bar",
-                Hash = new byte[32]
-            });
-            factory.ScannedFiles.Add(new ScannedFile()
-            {
-                Id = 2,
-                Name = "foobar.foo",
-                Path = @"C:\foo\foobar.foo",
-                Hash = new byte[32]
-            });
+            // ToDo: Fix
+            //factory.ScannedFiles.Add(new ScannedFile()
+            //{
+            //    Name = "foo.bar",
+            //    Path = @"C:\foobar\foo.bar",
+            //    Hash = new byte[32]
+            //});
+            //factory.ScannedFiles.Add(new ScannedFile()
+            //{
+            //    Name = "foobar.foo",
+            //    Path = @"C:\foo\foobar.foo",
+            //    Hash = new byte[32]
+            //});
 
             // ACT
             await scannedFileStore.PurgeLocationsAsync(purgeLocations);
 
             // ASSERT
-            factory.MockFileHashService.Verify(t => t.PurgeScannedLocationsAsync(purgeLocations), Times.Once());
+            service.Verify(t => t.PurgeScannedLocationsAsync(purgeLocations), Times.Once());
         }
 
         [TestMethod]
@@ -355,14 +350,14 @@ namespace FileHashRepository.Tests
             Dictionary<string, MockFileData> dictionaryMockFileData = new Dictionary<string, MockFileData>();
             dictionaryMockFileData.Add(@"C:\foo\bar.txt", new MockFileData("This is a test file."));
             MockFileSystem fileSystem = new MockFileSystem(dictionaryMockFileData);
-            MockFileHashServiceFactory factory = new MockFileHashServiceFactory();
-            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, factory);
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
 
             // ACT
             await scannedFileStore.ScanFile(@"C:\foo\bar.txt", null, 0, 0);
 
             // ASSERT
-            Assert.AreEqual(1, factory.ScannedFiles.Count);
+            service.Verify(t => t.InsertScannedFileAsync(It.IsAny<ScannedFile>()), Times.Once());
         }
 
         [TestMethod]
@@ -370,8 +365,8 @@ namespace FileHashRepository.Tests
         {
             // ARRANGE
             MockFileSystem fileSystem = new MockFileSystem();
-            MockFileHashServiceFactory factory = new MockFileHashServiceFactory();
-            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, factory);
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
             MockScannedFileStoreProgress progress = new MockScannedFileStoreProgress();
 
             // ACT
@@ -386,28 +381,28 @@ namespace FileHashRepository.Tests
         {
             // ARRANGE
             MockFileSystem fileSystem = new MockFileSystem();
-            MockFileHashServiceFactory factory = new MockFileHashServiceFactory();
-            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, factory);
-            factory.ScannedFiles.Add(new ScannedFile()
-            {
-                Id = 1,
-                Hash = new byte[32],
-                Path = @"C:\foo\bar.txt",
-                Name = "bar.txt"
-            });
-            factory.ScannedFiles.Add(new ScannedFile()
-            {
-                Id = 2,
-                Hash = new byte[32],
-                Path = @"C:\foo\bar.txt",
-                Name = "bar.txt"
-            });
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
+            // ToDo: Fix test
+            //factory.ScannedFiles.Add(new ScannedFile()
+            //{
+            //    Hash = new byte[32],
+            //    Path = @"C:\foo\bar.txt",
+            //    Name = "bar.txt"
+            //});
+            //factory.ScannedFiles.Add(new ScannedFile()
+            //{
+            //    Hash = new byte[32],
+            //    Path = @"C:\foo\bar.txt",
+            //    Name = "bar.txt"
+            //});
 
             // ACT
             await scannedFileStore.RemoveFile(@"C:\foo\bar.txt", null, 0, 0);
 
             // ASSERT
-            Assert.AreEqual(0, factory.ScannedFiles.Count);
+            throw new NotImplementedException();
+            //Assert.AreEqual(0, factory.ScannedFiles.Count);
         }
 
         [TestMethod]
@@ -415,16 +410,16 @@ namespace FileHashRepository.Tests
         {
             // ARRANGE
             MockFileSystem fileSystem = new MockFileSystem();
-            MockFileHashServiceFactory factory = new MockFileHashServiceFactory();
-            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, factory);
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
             MockScannedFileStoreProgress progress = new MockScannedFileStoreProgress();
-            factory.ScannedFiles.Add(new ScannedFile()
-            {
-                Id = 1,
-                Hash = new byte[32],
-                Path = @"C:\foo\bar.txt",
-                Name = "bar.txt"
-            });
+            //factory.ScannedFiles.Add(new ScannedFile()
+            //{
+            //    Hash = new byte[32],
+            //    Path = @"C:\foo\bar.txt",
+            //    Name = "bar.txt"
+            //});
+            // ToDo: Fix
 
             // ACT
             await scannedFileStore.RemoveFile(@"C:\foo\bar.txt", progress, 1, 1);

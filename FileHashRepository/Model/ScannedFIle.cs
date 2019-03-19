@@ -7,8 +7,12 @@ using System.Threading.Tasks;
 
 namespace FileHashRepository
 {
-    public partial class ScannedFile
+    public class ScannedFile
     {
+        public byte[] Hash { get; set; }
+        public string Path { get; set; }
+        public string Name { get; set; }
+
         public override bool Equals(object obj)
         {
             ScannedFileHashComparer comparer = new ScannedFileHashComparer();

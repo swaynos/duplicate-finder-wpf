@@ -12,14 +12,12 @@ namespace FileHashRepository.Tests
             // ARRANGE
             ScannedFile one = new ScannedFile()
             {
-                Id = 1,
                 Name = "foo",
                 Path = "bar",
                 Hash = new byte[32]
             };
             ScannedFile two = new ScannedFile()
             {
-                Id = 2,
                 Name = "foo",
                 Path = "bar",
                 Hash = new byte[32]
@@ -40,14 +38,12 @@ namespace FileHashRepository.Tests
             // ARRANGE
             ScannedFile one = new ScannedFile()
             {
-                Id = 1,
                 Name = "foo",
                 Path = "bar",
                 Hash = new byte[32]
             };
             ScannedFile two = new ScannedFile()
             {
-                Id = 2,
                 Name = "foo",
                 Path = "bar",
                 Hash = new byte[32]
@@ -68,14 +64,12 @@ namespace FileHashRepository.Tests
             // ARRANGE
             ScannedFile one = new ScannedFile()
             {
-                Id = 1,
                 Name = "foo",
                 Path = "bar",
                 Hash = new byte[32]
             };
             ScannedFile two = new ScannedFile()
             {
-                Id = 2,
                 Name = "foo2",
                 Path = "bar",
                 Hash = new byte[32]
@@ -96,14 +90,12 @@ namespace FileHashRepository.Tests
             // ARRANGE
             ScannedFile one = new ScannedFile()
             {
-                Id = 1,
                 Name = "foo",
                 Path = "bar",
                 Hash = new byte[32]
             };
             ScannedFile two = new ScannedFile()
             {
-                Id = 2,
                 Name = "foo",
                 Path = "bar2",
                 Hash = new byte[32]
