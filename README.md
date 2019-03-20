@@ -6,4 +6,4 @@ This was also my first time leveraging the full strengths of WPF with async C#, 
 Allows a user to scan files locally and on mapped network drives and stores the SHA256 hash value of these files to a local db.
 
 ## Requirements ##
- * SQL Server Express localdb installed
+ * 
