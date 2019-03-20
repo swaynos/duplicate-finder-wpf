@@ -2,10 +2,9 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
 using System;
-using System.Linq;
 using System.Collections.Generic;
-using System.IO.Abstractions;
 using System.IO.Abstractions.TestingHelpers;
+using System.Linq;
 using System.Threading.Tasks;
 
 namespace FileHashRepository.Tests
@@ -42,18 +41,13 @@ namespace FileHashRepository.Tests
             {
                 @"C:\foobar"
             };
-            List<ScannedFile> scannedFiles = new List<ScannedFile>();
-            service.Setup(t => t.InsertScannedFileAsync(It.IsAny<ScannedFile>()))
-                .Callback<ScannedFile>(file =>
-                {
-                    scannedFiles.Add(file);
-                });
 
             // ACT
             await scannedFileStore.ScanLocationsAsync(locations, new MockScannedFileStoreProgress());
 
             // ASSERT
-            Assert.AreEqual(scannedFiles.Count, 2);
+            service.Verify(t => t.InsertScannedFileAsync(It.Is<ScannedFile>(sf => sf.Path.Equals(@"C:\foobar\file1.txt"))), Times.Once);
+            service.Verify(t => t.InsertScannedFileAsync(It.Is<ScannedFile>(sf => sf.Path.Equals(@"C:\foobar\file2.txt"))), Times.Once);
         }
 
         [TestMethod]
@@ -152,6 +146,14 @@ namespace FileHashRepository.Tests
             {
                 @"C:\foobar"
             };
+            service.Setup(t => t.ListScannedFilePathsAsync(It.IsAny<List<string>>())).ReturnsAsync((List<string> locs) =>
+            {
+                return new List<string>()
+                {
+                     @"C:\foobar\foo.bar"
+
+                };
+            });
 
             // ACT
             await scannedFileStore.RescanLocationsAsync(locations, progress);
@@ -161,7 +163,7 @@ namespace FileHashRepository.Tests
         }
 
         [TestMethod]
-        public async Task RescanLocationAsync_RemovesScannedFilesRemovedFilesFromDiretory()
+        public async Task RescanLocationAsync_RemovesScannedFilesNotFoundInDiretory()
         {
             // ARRANGE
             MockFileSystem fileSystem = new MockFileSystem();
@@ -173,12 +175,20 @@ namespace FileHashRepository.Tests
             {
                 @"C:\foobar"
             };
+            service.Setup(t => t.ListScannedFilePathsAsync(It.IsAny<List<string>>())).ReturnsAsync((List<string> locs) =>
+            {
+                return new List<string>()
+                {
+                     @"C:\foobar\foo.bar"
+
+                };
+            });
 
             // ACT
             await scannedFileStore.RescanLocationsAsync(locations, progress);
 
             // ASSERT
-            service.Verify(t => t.RemoveScannedFilesByFilePathAsync(It.Is<string>(s => s.Equals(@"C:\foobar"))));
+            service.Verify(t => t.RemoveScannedFilesByFilePathAsync(It.Is<string>(s => s.Equals(@"C:\foobar\foo.bar"))));
         }
 
         [TestMethod]
@@ -249,6 +259,14 @@ namespace FileHashRepository.Tests
             {
                 @"C:\foobar"
             };
+            service.Setup(t => t.ListScannedFilePathsAsync(It.IsAny<List<string>>())).ReturnsAsync((List<string> locs) =>
+            {
+                return new List<string>()
+                {
+                     @"C:\foobar\foo.bar"
+
+                };
+            });
             service.Setup(t => t.InsertScannedLocationAsync(It.IsAny<ScannedLocation>()))
                 .Returns(Task.CompletedTask)
                 .Callback((ScannedLocation s) => { scannedLocations.Add(s); });
@@ -257,58 +275,77 @@ namespace FileHashRepository.Tests
             await scannedFileStore.RescanLocationsAsync(locations, progress);
 
             // ASSERT
-            Assert.AreEqual(locations[0], scannedLocations[0].Path);
+            service.Verify(t => t.InsertScannedLocationAsync(It.Is<ScannedLocation>(sl => sl.Path.Equals(@"C:\foobar"))));
         }
 
         [TestMethod]
-        public async Task ListDuplicateFiles_ReturnsResultsFromService()
+        public async Task ListDuplicateFiles_ReturnsDuplicatesFromService()
         {
             // ARRANGE
             MockFileSystem fileSystem = new MockFileSystem();
             Mock<IFileHashService> service = new Mock<IFileHashService>();
             ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
-            service.Setup(t => t.ListScannedFilePathsAsync(It.IsAny<List<string>>()))
-                .ReturnsAsync((List<string> locs) =>
-                {
-                    return new List<string>()
-                    {
-                        "X:\\Foo\\Bar\\FooBar.png"
-                    };
-                });
 
             // ACT
             List<ScannedFile> results = await scannedFileStore.ListDuplicateFilesAsync();
 
             // ASSERT
-            Assert.IsTrue(results[0].Name.Equals("FooBar.png"));
+            service.Verify(t => t.ReturnDuplicatesAsync(), Times.Once);
         }
 
         /// <summary>
         /// This test is the scenario that presented in a Bug in which the
-        /// Rescan would purge the entries added during Scan.
+        /// Rescan would purge the entries added during Scan. This function 
+        /// does a lot (probably too much) so I decided to make it an end to
+        /// end test.
         /// </summary>
         [TestMethod]
+
         public async Task RescanLocationAsync_PreviouslyScannedFilesPersist()
         {
             // ARRANGE
             Dictionary<string, MockFileData> dictionaryMockFileData = new Dictionary<string, MockFileData>();
             dictionaryMockFileData.Add(@"C:\foobar\file1.txt", new MockFileData("This is a test file."));
-            dictionaryMockFileData.Add(@"C:\foobar\file2.txt", new MockFileData("This is another test file."));
             MockFileSystem fileSystem = new MockFileSystem(dictionaryMockFileData);
-            Mock<IFileHashService> service = new Mock<IFileHashService>();
-            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
-            List<string> newLocations = new List<string>()
+            List<ScannedFile> scannedFiles = new List<ScannedFile>()
             {
-                @"C:\foobar"
+                new ScannedFile()
+                {
+                    Name = "file1.txt",
+                    Path = @"C:\foobar\file1.txt",
+                    Hash = new byte[32]
+                },
+                new ScannedFile()
+                {
+                    Name = "file2.txt",
+                    Path = @"C:\foobar\file2.txt",
+                    Hash = new byte[32]
+                }
             };
-            List<string> previousLocations = new List<string>();
-            await scannedFileStore.ScanLocationsAsync(newLocations, new MockScannedFileStoreProgress());
+            List<ScannedLocation> scannedLocations = new List<ScannedLocation>()
+            {
+                new ScannedLocation()
+                {
+                    Path = @"C:\foobar"
+                }
+            };
+            IDataCache<ScannedFile> scannedFileDataCache = new DataCache<ScannedFile>(scannedFiles);
+            IFileHashService service = new FileHashService(
+                scannedFileDataCache, 
+                new DataCache<ScannedLocation>(scannedLocations));
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service);
+
 
             // ACT
-            await scannedFileStore.RescanLocationsAsync(previousLocations, new MockScannedFileStoreProgress());
+            await scannedFileStore.RescanLocationsAsync(new List<string>
+            {
+                @"C:\foobar"
+            }, new MockScannedFileStoreProgress());
 
             // ASSERT
-            service.Verify(t => t.RemoveScannedFilesByFilePathAsync(It.IsAny<string>()), Times.Never, "Files were removed when not expected.");
+            var result = scannedFileDataCache.ListData().ToList();
+            Assert.AreEqual(1, result.Count);
+            Assert.IsTrue(result[0].Path.Equals(@"C:\foobar\file1.txt"));
         }
 
         [TestMethod]
@@ -322,19 +359,6 @@ namespace FileHashRepository.Tests
             {
                 @"C:\foobar"
             };
-            // ToDo: Fix
-            //factory.ScannedFiles.Add(new ScannedFile()
-            //{
-            //    Name = "foo.bar",
-            //    Path = @"C:\foobar\foo.bar",
-            //    Hash = new byte[32]
-            //});
-            //factory.ScannedFiles.Add(new ScannedFile()
-            //{
-            //    Name = "foobar.foo",
-            //    Path = @"C:\foo\foobar.foo",
-            //    Hash = new byte[32]
-            //});
 
             // ACT
             await scannedFileStore.PurgeLocationsAsync(purgeLocations);
@@ -383,26 +407,12 @@ namespace FileHashRepository.Tests
             MockFileSystem fileSystem = new MockFileSystem();
             Mock<IFileHashService> service = new Mock<IFileHashService>();
             ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
-            // ToDo: Fix test
-            //factory.ScannedFiles.Add(new ScannedFile()
-            //{
-            //    Hash = new byte[32],
-            //    Path = @"C:\foo\bar.txt",
-            //    Name = "bar.txt"
-            //});
-            //factory.ScannedFiles.Add(new ScannedFile()
-            //{
-            //    Hash = new byte[32],
-            //    Path = @"C:\foo\bar.txt",
-            //    Name = "bar.txt"
-            //});
 
             // ACT
             await scannedFileStore.RemoveFile(@"C:\foo\bar.txt", null, 0, 0);
 
             // ASSERT
-            throw new NotImplementedException();
-            //Assert.AreEqual(0, factory.ScannedFiles.Count);
+            service.Verify(t => t.RemoveScannedFilesByFilePathAsync(It.Is<string>(s => s.Equals(@"C:\foo\bar.txt"))));
         }
 
         [TestMethod]
