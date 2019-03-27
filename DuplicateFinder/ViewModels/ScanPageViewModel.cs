@@ -6,9 +6,7 @@ using FileHashRepository;
 using NLog;
 using System;
 using System.Collections.Generic;
-using System.Collections.ObjectModel;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace DuplicateFinder.ViewModels
@@ -52,12 +50,16 @@ namespace DuplicateFinder.ViewModels
             ScanComplete?.Invoke(this, EventArgs.Empty);
         }
 
-        // ToDo: Create another Service for loading scanned files and locations and managing the ScannedFileStore
-        public ScanPageViewModel() : this(LogManager.GetCurrentClassLogger(), new ScannedFileStore(new FileHashService(new DataCache<ScannedFile>(new List<ScannedFile>()), new DataCache<ScannedLocation>(new List<ScannedLocation>()))))
+        /// <summary>
+        /// Create a new instance of ScanPageViewModel, 
+        /// you must call <see cref="SetScannedFileStore(IScannedFileStore)"/>
+        /// before calling BeginScanAsync for the first time.
+        /// </summary>
+        public ScanPageViewModel() : this(LogManager.GetCurrentClassLogger(), null)
         {
         }
 
-        public ScanPageViewModel(ILogger logger, IScannedFileStore scannedFileStore)
+        internal ScanPageViewModel(ILogger logger, IScannedFileStore scannedFileStore)
         {
             _logger = logger;
             _scannedFileStore = scannedFileStore;
@@ -132,6 +134,15 @@ namespace DuplicateFinder.ViewModels
             {
                 _logger.Error(ex, "An error occurred during the scanning process.");
             }
+        }
+
+        /// <summary>
+        /// Set the ScannedFileStore for this ScanPageViewModel
+        /// </summary>
+        internal void SetScannedFileStore(IScannedFileStore scannedFileStore)
+        {
+            // Assume thread safety
+            this._scannedFileStore = scannedFileStore;
         }
 
         /// <summary>

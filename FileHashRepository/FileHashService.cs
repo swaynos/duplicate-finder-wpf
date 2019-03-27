@@ -155,6 +155,17 @@ namespace FileHashRepository
         }
 
         /// <summary>
+        /// Update the <see cref="IDataCache{T}"/> with the provided files and locations.
+        /// </summary>
+        /// <param name="scannedFiles"></param>
+        /// <param name="scannedLocations"></param>
+        public void UpdateDataCaches(IDataCache<ScannedFile> scannedFiles, IDataCache<ScannedLocation> scannedLocations)
+        {
+            _scannedFiles = scannedFiles;
+            _scannedLocations = scannedLocations;
+        }
+
+        /// <summary>
         /// Iterate through the ScannedFiles to determine if there is an equal ScannedFile
         /// </summary>
         /// <param name="scannedFile">The ScannedFile to compare against the ScannedFiles in the data cache</param>

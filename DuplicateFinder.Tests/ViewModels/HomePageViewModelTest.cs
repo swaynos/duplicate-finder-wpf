@@ -2,8 +2,10 @@
 using DuplicateFinder.Models;
 using DuplicateFinder.Utilities;
 using DuplicateFinder.ViewModels;
+using FileHashRepository;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Moq;
+using System.Threading.Tasks;
 using Forms = System.Windows.Forms;
 
 namespace DuplicateFinder.Tests.ViewModels
@@ -18,11 +20,32 @@ namespace DuplicateFinder.Tests.ViewModels
         }
 
         [TestMethod]
+        public async Task PageLoaded_LoadsScannedFileStoreFromFile()
+        {
+            // ARRANGE
+            string selectedLocation = "C:\\foobar";
+            Mock<IScannedFileStore> scannedFileStore = GetMockScannedFileStore();
+            HomePageViewModel viewModel = new HomePageViewModel(
+                GetMockFolderBrowserDialogWrapper(selectedLocation).Object,
+                scannedFileStore.Object,
+                "C:\\user");
+
+            // ACT
+            await viewModel.PageLoaded.ExecuteAsync(null);
+
+            // ASSERT
+            scannedFileStore.Verify(t => t.LoadScannedFileStoreFromFileAsync(It.IsAny<string>()), Times.Once);
+        }
+
+        [TestMethod]
         public void Add_AddsLocationsToModel()
         {
             // ARRANGE
             string selectedLocation = "C:\\foobar";
-            HomePageViewModel viewModel = new HomePageViewModel(GetMockFolderBrowserDialogWrapper(selectedLocation).Object);
+            HomePageViewModel viewModel = new HomePageViewModel(
+                GetMockFolderBrowserDialogWrapper(selectedLocation).Object,
+                GetMockScannedFileStore().Object,
+                "C:\\user");
 
             // ACT
             viewModel.Add.Execute(null);
@@ -36,10 +59,12 @@ namespace DuplicateFinder.Tests.ViewModels
         {
             // ARRANGE
             string selectedLocation = "C:\\foobar";
-            HomePageViewModel viewModel = new HomePageViewModel(GetMockFolderBrowserDialogWrapper(selectedLocation).Object);
+            HomePageViewModel viewModel = new HomePageViewModel(
+                GetMockFolderBrowserDialogWrapper(selectedLocation).Object, 
+                GetMockScannedFileStore().Object,
+                "C:\\user");
 
             // ACT
-            viewModel.Add.Execute(null);
             viewModel.Add.Execute(null);
 
             // ASSERT
@@ -53,7 +78,10 @@ namespace DuplicateFinder.Tests.ViewModels
             // ARRANGE
             string selectedLocation = "C:\\foobar";
             var mockFolderBrowserDialog = GetMockFolderBrowserDialogWrapper(selectedLocation);
-            HomePageViewModel viewModel = new HomePageViewModel(mockFolderBrowserDialog.Object);
+            HomePageViewModel viewModel = new HomePageViewModel(
+                mockFolderBrowserDialog.Object,
+                GetMockScannedFileStore().Object,
+                "C:\\user");
             mockFolderBrowserDialog.Setup(t => t.ShowDialogWrapper(It.IsAny<Forms.CommonDialog>())).Returns<Forms.CommonDialog>(t =>
             {
                 return Forms.DialogResult.Cancel;
@@ -71,7 +99,10 @@ namespace DuplicateFinder.Tests.ViewModels
         {
             // ARRANGE
             string selectedLocation = "C:\\foobar";
-            HomePageViewModel viewModel = new HomePageViewModel(GetMockFolderBrowserDialogWrapper(selectedLocation).Object);
+            HomePageViewModel viewModel = new HomePageViewModel(
+                GetMockFolderBrowserDialogWrapper(selectedLocation).Object,
+                GetMockScannedFileStore().Object,
+                "C:\\user");
 
             // ACT
             viewModel.Add.Execute(null);
@@ -86,7 +117,10 @@ namespace DuplicateFinder.Tests.ViewModels
         {
             // ARRANGE
             ScanLocation location = new ScanLocation("C:\\foobar");
-            HomePageViewModel viewModel = new HomePageViewModel(GetMockFolderBrowserDialogWrapper(string.Empty).Object);
+            HomePageViewModel viewModel = new HomePageViewModel(
+                GetMockFolderBrowserDialogWrapper(string.Empty).Object,
+                GetMockScannedFileStore().Object,
+                "C:\\user");
             viewModel.Locations.Add(location);
 
             // ACT
@@ -102,7 +136,10 @@ namespace DuplicateFinder.Tests.ViewModels
         {
             // ARRANGE
             ScanLocation location = new ScanLocation("C:\\foobar");
-            HomePageViewModel viewModel = new HomePageViewModel(GetMockFolderBrowserDialogWrapper(string.Empty).Object);
+            HomePageViewModel viewModel = new HomePageViewModel(
+                GetMockFolderBrowserDialogWrapper(string.Empty).Object,
+                GetMockScannedFileStore().Object,
+                "C:\\user");
             viewModel.Locations.Add(location);
 
             // ACT
@@ -118,7 +155,10 @@ namespace DuplicateFinder.Tests.ViewModels
         {
             // ARRANGE
             ScanLocation location = new ScanLocation("C:\\foobar");
-            HomePageViewModel viewModel = new HomePageViewModel(GetMockFolderBrowserDialogWrapper(string.Empty).Object);
+            HomePageViewModel viewModel = new HomePageViewModel(
+                GetMockFolderBrowserDialogWrapper(string.Empty).Object,
+                GetMockScannedFileStore().Object,
+                "C:\\user");
             viewModel.Locations.Add(location);
 
             // ACT
@@ -136,7 +176,10 @@ namespace DuplicateFinder.Tests.ViewModels
             // ARRANGE
             var mockNavigationService = new Mock<IPageNavigationService>();
             App.NavigationService = mockNavigationService.Object;
-            HomePageViewModel viewModel = new HomePageViewModel(GetMockFolderBrowserDialogWrapper(string.Empty).Object);
+            HomePageViewModel viewModel = new HomePageViewModel(
+                GetMockFolderBrowserDialogWrapper(string.Empty).Object,
+                GetMockScannedFileStore().Object,
+                "C:\\user");
 
             // ACT
             viewModel.Scan.Execute(null);
@@ -164,6 +207,11 @@ namespace DuplicateFinder.Tests.ViewModels
             });
 
             return wrapper;
+        }
+
+        private Mock<IScannedFileStore> GetMockScannedFileStore()
+        {
+            return new Mock<IScannedFileStore>();
         }
     }
 }

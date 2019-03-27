@@ -15,5 +15,6 @@ namespace FileHashRepository
         Task PurgeScannedLocationsAsync(List<string> locationPaths);
         Task<int> RemoveScannedFilesByFilePathAsync(string filePath);
         Task<List<ScannedFile>> ReturnDuplicatesAsync();
+        void UpdateDataCaches(IDataCache<ScannedFile> files, IDataCache<ScannedLocation> locations);
     }
 }

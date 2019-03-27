@@ -1,10 +1,11 @@
-﻿using FileHashRepository.Utilities;
+﻿using FileHashRepository.Model;
+using FileHashRepository.Utilities;
+using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Abstractions;
 using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace FileHashRepository
@@ -26,8 +27,41 @@ namespace FileHashRepository
             _fileSystem = fileSystem;
         }
 
-        public ScannedFileStore(IFileHashService service) : this(new FileSystem(), service)
+        public ScannedFileStore() : this(
+            new FileSystem(), 
+            new FileHashService(
+                new DataCache<ScannedFile>(new List<ScannedFile>()),
+                new DataCache<ScannedLocation>(new List<ScannedLocation>()
+            )))
         {
+        }
+
+        /// <summary>
+        /// Load the current <see cref="ScannedFileStore"/> from a json file.
+        /// </summary>
+        /// <param name="filePath">The path to the json file</param>
+        public async Task LoadScannedFileStoreFromFileAsync(string filePath)
+        {
+            Task task = Task.Run(() =>
+            {
+                if (_fileSystem.File.Exists(filePath))
+                {
+                    using (Stream stream = _fileSystem.File.OpenRead(filePath))
+                    {
+                        using (JsonReader reader = new JsonTextReader(new StreamReader(stream)))
+                        {
+                            JsonSerializer serializer = new JsonSerializer();
+
+                            // read the json from the file stream
+                            ScanResult scanResult = serializer.Deserialize<ScanResult>(reader);
+
+                            _service.UpdateDataCaches(new DataCache<ScannedFile>(scanResult.Files),
+                                new DataCache<ScannedLocation>(scanResult.Locations));
+                        }
+                    }
+                }                 
+            });
+            await task;
         }
 
         /// <summary>

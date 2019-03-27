@@ -2,8 +2,11 @@
 using DuplicateFinder.Models;
 using DuplicateFinder.Utilities;
 using DuplicateFinder.Views;
+using FileHashRepository;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 using System.Windows.Input;
 
@@ -12,17 +15,27 @@ namespace DuplicateFinder.ViewModels
     public class HomePageViewModel : BindableBase
     {
         private IFolderBrowserDialogWrapper _folderBrowserDialog;
+        private IScannedFileStore _scannedFileStore;
         private DelegateCommand _add;
         private DelegateCommand _remove;
         private DelegateCommand _scan;
+        private string _userAppDataPath;
 
         public ObservableCollection<ScanLocation> Locations { get; set; }
 
         public ScanLocation SelectedLocation { get; set; } 
 
-        internal HomePageViewModel(IFolderBrowserDialogWrapper folderBrowserDialog)
+        /// <summary>
+        /// Internally exposed constructor for Unit Testing
+        /// </summary>
+        internal HomePageViewModel(
+            IFolderBrowserDialogWrapper folderBrowserDialog, 
+            IScannedFileStore scannedFileStore, 
+            string userAppDataPath)
         {
             _folderBrowserDialog = folderBrowserDialog;
+            _scannedFileStore = scannedFileStore;
+            _userAppDataPath = userAppDataPath;
             this.Locations = new ObservableCollection<ScanLocation>();
             _add =  DelegateCommand.Create(AddLocation);
             _remove = DelegateCommand.Create(RemoveLocation, false);
@@ -30,11 +43,17 @@ namespace DuplicateFinder.ViewModels
             this.Add = _add;
             this.Remove = _remove;
             this.Scan = _scan;
+            this.PageLoaded = AsyncCommand.Create(OnPageLoaded);
         }
 
-        public HomePageViewModel() : this(new FolderBrowserDialogWrapper())
+        public HomePageViewModel() : this(
+            new FolderBrowserDialogWrapper(), 
+            new ScannedFileStore(), 
+            Application.UserAppDataPath)
         {
         }
+
+        public IAsyncCommand PageLoaded { get; set; }
 
         public ICommand Add { get; private set; }
 
@@ -82,6 +101,7 @@ namespace DuplicateFinder.ViewModels
         {
             ScanPage scanPage = new ScanPage();
             ScanPageViewModel scanPageViewModel = scanPage.DataContext as ScanPageViewModel;
+            scanPageViewModel.SetScannedFileStore(_scannedFileStore);
             scanPageViewModel.Locations = new List<ScanLocation>(Locations);
             App.NavigationService.Navigate(scanPage);
         }
@@ -101,6 +121,15 @@ namespace DuplicateFinder.ViewModels
                 _remove.IsEnabled = false;
                 _scan.IsEnabled = false;
             }
+        }
+
+        /// <summary>
+        /// Handles when the HomePage is loaded
+        /// </summary>
+        private async Task OnPageLoaded()
+        {
+            string dataFilePath = Path.Combine(_userAppDataPath, "data.json");
+            await _scannedFileStore.LoadScannedFileStoreFromFileAsync(dataFilePath);
         }
     }
 }

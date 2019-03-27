@@ -423,19 +423,47 @@ namespace FileHashRepository.Tests
             Mock<IFileHashService> service = new Mock<IFileHashService>();
             ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
             MockScannedFileStoreProgress progress = new MockScannedFileStoreProgress();
-            //factory.ScannedFiles.Add(new ScannedFile()
-            //{
-            //    Hash = new byte[32],
-            //    Path = @"C:\foo\bar.txt",
-            //    Name = "bar.txt"
-            //});
-            // ToDo: Fix
 
             // ACT
             await scannedFileStore.RemoveFile(@"C:\foo\bar.txt", progress, 1, 1);
 
             // ASSERT
             Assert.AreEqual(100, progress.ReportedValues[0]);
+        }
+
+        [TestMethod]
+        public async Task LoadScannedFileStoreFromFileAsync_HandlesFileNotFoundException()
+        {
+            // ARRANGE
+            string filePath = "C:\\foobar\\data.json";
+            MockFileSystem fileSystem = new MockFileSystem();
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
+
+            // ACT
+            await scannedFileStore.LoadScannedFileStoreFromFileAsync(filePath);
+
+            // ASSERT
+            Assert.IsFalse(fileSystem.FileExists("C:\\foobar\\data.json"));
+        }
+
+        [TestMethod]
+        public async Task LoadScannedFileStoreFromFileAsync_LoadsScannedFilesToDataCaches()
+        {
+            // ARRANGE
+            string filePath = "C:\\foobar\\data.json";
+            MockFileSystem fileSystem = new MockFileSystem();
+            Mock<IFileHashService> service = new Mock<IFileHashService>();
+            ScannedFileStore scannedFileStore = new ScannedFileStore(fileSystem, service.Object);
+            fileSystem.AddFile(filePath, new MockFileData(
+                "{\"files\": [{\"Name\": \"Foobar File\"}],\"locations\": [{\"Path\": \"Foobar Location\"}]}"));
+
+            // ACT
+            await scannedFileStore.LoadScannedFileStoreFromFileAsync(filePath);
+
+            // ASSERT
+            service.Verify(t => t.UpdateDataCaches(
+                It.IsAny<IDataCache<ScannedFile>>(), It.IsAny<IDataCache<ScannedLocation>>()), Times.Once);
         }
     }
 }
