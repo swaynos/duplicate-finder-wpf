@@ -3,7 +3,7 @@ A WPF Application for easily finding and removing duplicate files. This was a ut
 This was also my first time leveraging the full strengths of WPF with async C#, and I wanted to also learn what MVVM is and how it differs from MVC.
 
 ## Description ##
-Allows a user to scan files locally and on mapped network drives and stores the SHA256 hash value of these files to a local db.
+Allows a user to scan files locally and on mapped network drives and stores the SHA256 hash value of these to memory.
 
 ## Requirements ##
- * SQL Server Express localdb installed
+ * 
