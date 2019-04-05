@@ -1,7 +1,5 @@
-﻿using System;
+﻿using FileHashRepository.Model;
 using System.Collections.Generic;
-using System.Linq;
-using System.Text;
 using System.Threading.Tasks;
 
 namespace FileHashRepository
@@ -16,5 +14,7 @@ namespace FileHashRepository
         Task<int> RemoveScannedFilesByFilePathAsync(string filePath);
         Task<List<ScannedFile>> ReturnDuplicatesAsync();
         void UpdateDataCaches(IDataCache<ScannedFile> files, IDataCache<ScannedLocation> locations);
+        IEnumerable<ScannedLocation> ListScannedLocations();
+        IEnumerable<ScannedFile> ListScannedFiles();
     }
 }

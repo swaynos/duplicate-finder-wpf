@@ -154,6 +154,24 @@ namespace FileHashRepository
                 .SelectMany(group => group).ToList();
         }
 
+        // ToDo: Unit Test that the entire collection is returned
+        /// <summary>
+        /// Lists the entire collection of scanned locations
+        /// </summary>
+        public IEnumerable<ScannedLocation> ListScannedLocations()
+        {
+            return _scannedLocations.ListData();
+        }
+
+        // ToDo: Unit Test that the entire collection is returned
+        /// <summary>
+        /// Lists the entire collection of scanned files
+        /// </summary>
+        public IEnumerable<ScannedFile> ListScannedFiles()
+        {
+            return _scannedFiles.ListData();
+        }
+
         /// <summary>
         /// Update the <see cref="IDataCache{T}"/> with the provided files and locations.
         /// </summary>

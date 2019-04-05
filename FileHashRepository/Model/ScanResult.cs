@@ -6,9 +6,9 @@ namespace FileHashRepository.Model
     internal class ScanResult
     {
         [JsonProperty("files")]
-        internal List<ScannedFile> Files { get; set; }
+        internal IEnumerable<ScannedFile> Files { get; set; }
 
         [JsonProperty("locations")]
-        internal List<ScannedLocation> Locations { get; set; }
+        internal IEnumerable<ScannedLocation> Locations { get; set; }
     }
 }

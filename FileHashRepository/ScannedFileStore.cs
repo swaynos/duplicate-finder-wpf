@@ -36,8 +36,9 @@ namespace FileHashRepository
         {
         }
 
+        // ToDo: Unit Test
         /// <summary>
-        /// Load the current <see cref="ScannedFileStore"/> from a json file.
+        /// Load the current <see cref="ScannedFileStore"/> from a json file. Any exception will be unhandled.
         /// </summary>
         /// <param name="filePath">The path to the json file</param>
         public async Task LoadScannedFileStoreFromFileAsync(string filePath)
@@ -55,11 +56,42 @@ namespace FileHashRepository
                             // read the json from the file stream
                             ScanResult scanResult = serializer.Deserialize<ScanResult>(reader);
 
-                            _service.UpdateDataCaches(new DataCache<ScannedFile>(scanResult.Files),
-                                new DataCache<ScannedLocation>(scanResult.Locations));
+                            // Calling ToList() here will enumerate the entire collection in memory.
+                            // This is fine for our DataCache implementation for now since it keeps the list
+                            // in memory regardless.
+                            _service.UpdateDataCaches(new DataCache<ScannedFile>(scanResult.Files.ToList()),
+                                new DataCache<ScannedLocation>(scanResult.Locations.ToList()));
                         }
                     }
                 }                 
+            });
+            await task;
+        }
+
+        // ToDo: Unit Test
+        /// <summary>
+        /// Save the current <see cref="ScannedFileStore"/> to a json file. Any exception will be unhandled.
+        /// </summary>
+        /// <param name="filePath">The path of the file to save, will overwrite contents if file is not empty.</param>
+        public async Task SaveScannedFileStoreToFileAsync(string filePath)
+        {
+            Task task = Task.Run(() =>
+            {
+                // File will be overwritten if it already exists;
+                using (Stream stream = _fileSystem.File.Create(filePath))
+                {
+                    using (StreamWriter writer = new StreamWriter(stream))
+                    {
+                        JsonSerializer serializer = new JsonSerializer();
+                        ScanResult scanResult = new ScanResult()
+                        {
+                            Files = _service.ListScannedFiles(),
+                            Locations = _service.ListScannedLocations()
+                        };
+
+                        serializer.Serialize(writer, scanResult);
+                    }
+                }
             });
             await task;
         }
