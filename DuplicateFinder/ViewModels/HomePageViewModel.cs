@@ -12,14 +12,12 @@ using System.Windows.Input;
 
 namespace DuplicateFinder.ViewModels
 {
-    public class HomePageViewModel : BindableBase
+    public class HomePageViewModel : BaseViewModel
     {
         private IFolderBrowserDialogWrapper _folderBrowserDialog;
-        private IScannedFileStore _scannedFileStore;
         private DelegateCommand _add;
         private DelegateCommand _remove;
         private DelegateCommand _scan;
-        private string _userAppDataPath;
 
         public ObservableCollection<ScanLocation> Locations { get; set; }
 
@@ -31,10 +29,9 @@ namespace DuplicateFinder.ViewModels
         internal HomePageViewModel(
             IFolderBrowserDialogWrapper folderBrowserDialog, 
             IScannedFileStore scannedFileStore, 
-            string userAppDataPath)
+            string userAppDataPath) : base(scannedFileStore, userAppDataPath)
         {
             _folderBrowserDialog = folderBrowserDialog;
-            _scannedFileStore = scannedFileStore;
             _userAppDataPath = userAppDataPath;
             this.Locations = new ObservableCollection<ScanLocation>();
             _add =  DelegateCommand.Create(AddLocation);
@@ -128,7 +125,7 @@ namespace DuplicateFinder.ViewModels
         /// </summary>
         private async Task OnPageLoaded()
         {
-            string dataFilePath = Path.Combine(_userAppDataPath, "data.json");
+            string dataFilePath = GetDataFilePath();
             await _scannedFileStore.LoadScannedFileStoreFromFileAsync(dataFilePath);
         }
     }

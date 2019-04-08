@@ -116,6 +116,7 @@
     <Compile Include="Utilities\ScanningProgress.cs" />
     <Compile Include="Framework\AsyncCommand.cs" />
     <Compile Include="Framework\DelegateCommand.cs" />
+    <Compile Include="ViewModels\BaseViewModel.cs" />
     <Compile Include="Views\ScanPage.xaml.cs">
       <DependentUpon>ScanPage.xaml</DependentUpon>
     </Compile>

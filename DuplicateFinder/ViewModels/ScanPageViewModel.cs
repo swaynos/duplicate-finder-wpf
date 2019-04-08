@@ -8,15 +8,15 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using System.Windows.Forms;
 
 namespace DuplicateFinder.ViewModels
 {
-    public class ScanPageViewModel : BindableBase
+    public class ScanPageViewModel : BaseViewModel
     {
         private ILogger _logger;
         private int _progress;
         private List<ScannedFile> _returnDuplicatesResult;
-        private IScannedFileStore _scannedFileStore;
 
         public List<ScanLocation> Locations { get; set; }
 
@@ -55,14 +55,14 @@ namespace DuplicateFinder.ViewModels
         /// you must call <see cref="SetScannedFileStore(IScannedFileStore)"/>
         /// before calling BeginScanAsync for the first time.
         /// </summary>
-        public ScanPageViewModel() : this(LogManager.GetCurrentClassLogger(), null)
+        public ScanPageViewModel() : this(LogManager.GetCurrentClassLogger(), null, Application.UserAppDataPath)
         {
         }
 
-        internal ScanPageViewModel(ILogger logger, IScannedFileStore scannedFileStore)
+        internal ScanPageViewModel(ILogger logger, IScannedFileStore scannedFileStore, string userAppDataPath)
+            : base(scannedFileStore, userAppDataPath)
         {
             _logger = logger;
-            _scannedFileStore = scannedFileStore;
             Locations = new List<ScanLocation>();
             Progress = 0;
             ScanComplete += ShowResultPage;
@@ -136,14 +136,6 @@ namespace DuplicateFinder.ViewModels
             }
         }
 
-        /// <summary>
-        /// Set the ScannedFileStore for this ScanPageViewModel
-        /// </summary>
-        internal void SetScannedFileStore(IScannedFileStore scannedFileStore)
-        {
-            // Assume thread safety
-            this._scannedFileStore = scannedFileStore;
-        }
 
         /// <summary>
         /// Retrieve the duplicate files from the storage backend 
@@ -172,7 +164,7 @@ namespace DuplicateFinder.ViewModels
         {
             ResultPage resultPage = new ResultPage();
             ResultPageViewModel resultPageViewModel = resultPage.DataContext as ResultPageViewModel;
-            resultPageViewModel.AddScannedFiles(_returnDuplicatesResult);
+            resultPageViewModel.SetScannedFileStore(_scannedFileStore);
             App.NavigationService.Navigate(resultPage);
         }
     }

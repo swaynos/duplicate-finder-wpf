@@ -28,7 +28,7 @@ namespace DuplicateFinder.Tests.ViewModels
             bool scanComplete = false;
             var mockLogger = new Mock<ILogger>();
             var mockScannedFileStore = GetMockScannedFileStore();
-            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object);
+            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object, "C:\\user");
             viewModel.ScanComplete += (s, e) =>
             {
                 scanComplete = true;
@@ -47,7 +47,7 @@ namespace DuplicateFinder.Tests.ViewModels
             // ARRANGE
             var mockLogger = new Mock<ILogger>();
             var mockScannedFileStore = GetMockScannedFileStore();
-            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object);
+            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object, "C:\\user");
             
             // ACT
             await viewModel.BeginScanAsync();
@@ -65,7 +65,7 @@ namespace DuplicateFinder.Tests.ViewModels
             // ARRANGE
             var mockLogger = new Mock<ILogger>();
             var mockScannedFileStore = GetMockScannedFileStore();
-            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object);
+            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object, "C:\\user");
             viewModel.Locations = new List<ScanLocation>()
             {
                 new ScanLocation("new")
@@ -87,7 +87,7 @@ namespace DuplicateFinder.Tests.ViewModels
             // ARRANGE
             var mockLogger = new Mock<ILogger>();
             var mockScannedFileStore = GetMockScannedFileStore();
-            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object);
+            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object, "C:\\user");
             viewModel.Locations = new List<ScanLocation>()
             {
                 new ScanLocation("location1")
@@ -109,7 +109,7 @@ namespace DuplicateFinder.Tests.ViewModels
             // ARRANGE
             var mockLogger = new Mock<ILogger>();
             var mockScannedFileStore = GetMockScannedFileStore();
-            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object);
+            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object, "C:\\user");
 
             // ACT
             await viewModel.BeginScanAsync();
@@ -124,7 +124,7 @@ namespace DuplicateFinder.Tests.ViewModels
             // ARRANGE
             var mockLogger = new Mock<ILogger>();
             var mockScannedFileStore = GetMockScannedFileStore();
-            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object);
+            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object, "C:\\user");
             mockScannedFileStore.Setup(t => t.ListScannedLocationsAsync()).ReturnsAsync(() =>
             {
                 throw new NotImplementedException();
@@ -142,7 +142,7 @@ namespace DuplicateFinder.Tests.ViewModels
         {
             var mockLogger = new Mock<ILogger>();
             var mockScannedFileStore = GetMockScannedFileStore();
-            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object);
+            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object, "C:\\user");
             mockScannedFileStore.Setup(t => t.ListDuplicateFilesAsync()).ReturnsAsync(() =>
             {
                 return new List<ScannedFile>()
@@ -163,7 +163,7 @@ namespace DuplicateFinder.Tests.ViewModels
         {
             var mockLogger = new Mock<ILogger>();
             var mockScannedFileStore = GetMockScannedFileStore();
-            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object);
+            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object, "C:\\user");
             mockScannedFileStore.Setup(t => t.ListDuplicateFilesAsync()).ReturnsAsync(() =>
             {
                 throw new NotImplementedException();
@@ -185,7 +185,7 @@ namespace DuplicateFinder.Tests.ViewModels
             var mockScannedFileStore = GetMockScannedFileStore();
             var mockNavigationService = new Mock<IPageNavigationService>();
             App.NavigationService = mockNavigationService.Object;
-            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object);
+            ScanPageViewModel viewModel = new ScanPageViewModel(mockLogger.Object, mockScannedFileStore.Object, "C:\\user");
 
             // ACT
             await viewModel.OnLoaded();

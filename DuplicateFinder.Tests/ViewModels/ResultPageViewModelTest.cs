@@ -22,7 +22,7 @@ namespace DuplicateFinder.Tests.ViewModels
             var mockLogger = new Mock<ILogger>();
             var mockProcess = new Mock<IProcess>();
             var mockRecycleFile = GetMockRecycleFile();
-            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object);
+            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object, "C:\\user", null);
             viewModel.Duplicates.Add(new ScanResult()
             {
                 FilePath = filePath,
@@ -47,7 +47,7 @@ namespace DuplicateFinder.Tests.ViewModels
             var mockLogger = new Mock<ILogger>();
             var mockProcess = new Mock<IProcess>();
             var mockRecycleFile = GetMockRecycleFile();
-            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object);
+            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object, "C:\\user", null);
             viewModel.Duplicates.Add(new ScanResult()
             {
                 FilePath = filePath,
@@ -71,7 +71,7 @@ namespace DuplicateFinder.Tests.ViewModels
             var mockLogger = new Mock<ILogger>();
             var mockProcess = new Mock<IProcess>();
             var mockRecycleFile = GetMockRecycleFile();
-            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object);
+            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object, "C:\\user", null);
             viewModel.Duplicates.Add(new ScanResult()
             {
                 FilePath = filePath,
@@ -94,7 +94,7 @@ namespace DuplicateFinder.Tests.ViewModels
             var mockLogger = new Mock<ILogger>();
             var mockProcess = new Mock<IProcess>();
             var mockRecycleFile = GetMockRecycleFile();
-            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object);
+            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object, "C:\\user", null);
             viewModel.Duplicates.Add(new ScanResult()
             {
                 FilePath = filePath,
@@ -110,13 +110,13 @@ namespace DuplicateFinder.Tests.ViewModels
         }
 
         [TestMethod]
-        public void AddScannedFiles_AddsFileToModel()
+        public void AddScannedFiles_AddsFileToViewModel()
         {
             // ARRANGE
             var mockLogger = new Mock<ILogger>();
             var mockProcess = new Mock<IProcess>();
             var mockRecycleFile = GetMockRecycleFile();
-            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object);
+            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object, "C:\\user", null);
             List<ScannedFile> scannedFiles = GetScannedFiles();
 
             // ACT
@@ -133,7 +133,7 @@ namespace DuplicateFinder.Tests.ViewModels
             var mockLogger = new Mock<ILogger>();
             var mockProcess = new Mock<IProcess>();
             var mockRecycleFile = GetMockRecycleFile();
-            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object);
+            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object, "C:\\user", null);
             List<ScannedFile> scannedFiles = GetScannedFiles();
 
             // ACT
@@ -152,10 +152,13 @@ namespace DuplicateFinder.Tests.ViewModels
         }
 
         [TestMethod]
-        public void Loaded_WithData_TogglesButtons()
+        public void PageLoaded_WithData_TogglesButtons()
         {
             // ARRANGE
-            ResultPageViewModel viewModel = new ResultPageViewModel();
+            var mockLogger = new Mock<ILogger>();
+            var mockProcess = new Mock<IProcess>();
+            var mockRecycleFile = GetMockRecycleFile();
+            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object, "C:\\user", null);
             viewModel.Duplicates.Add(new ScanResult()
             {
                 FilePath = "C:\\Foo\\foo.txt",
@@ -164,11 +167,28 @@ namespace DuplicateFinder.Tests.ViewModels
             });
 
             // ACT
-            viewModel.Loaded.Execute(null);
+            viewModel.PageLoaded.Execute(null);
 
             // ASSERT
             Assert.IsTrue(viewModel.Preview.CanExecute(null), "Preview is not enabled");
             Assert.IsTrue(viewModel.Recycle.CanExecute(null), "Recycle is not enabled");
+        }
+
+        [TestMethod]
+        public async Task PageLoaded_SavesResultToFile()
+        {
+            // ARRANGE
+            var mockLogger = new Mock<ILogger>();
+            var mockProcess = new Mock<IProcess>();
+            var mockRecycleFile = GetMockRecycleFile();
+            Mock<IScannedFileStore> scannedFileStore = new Mock<IScannedFileStore>();
+            ResultPageViewModel viewModel = new ResultPageViewModel(mockLogger.Object, mockProcess.Object, mockRecycleFile.Object, "C:\\user", scannedFileStore.Object);
+
+            // ACT
+            await viewModel.PageLoaded.ExecuteAsync(null);
+
+            // ASSERT
+            scannedFileStore.Verify(t => t.SaveScannedFileStoreToFileAsync(It.IsAny<string>()), Times.Once);
         }
 
         private Mock<IRecycleFile> GetMockRecycleFile()

@@ -85,4 +85,10 @@
                     HorizontalAlignment="Center" Command="{Binding Recycle}">Recycle</Button>
         </Grid>
     </Grid>
+
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="Loaded">
+            <i:InvokeCommandAction Command="{Binding PageLoaded}"/>
+        </i:EventTrigger>
+    </i:Interaction.Triggers>
 </Page>

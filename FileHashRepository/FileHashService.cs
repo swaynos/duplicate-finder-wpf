@@ -60,40 +60,6 @@ namespace FileHashRepository
         {
             IQueryable<ScannedFile> scannedFiles = await FindScannedFilesByLocationPathsAsync(locationPaths);
             return scannedFiles.Select(t => t.Path).ToList();
-            // ToDo: Remove
-            //List<string> scannedFilePaths;
-
-            //if (locationPaths == null)
-            //{
-            //    scannedFilePaths =  _scannedFiles.ListData().Select(t => t.Path).ToList();
-            //}
-            //else if (locationPaths.Count == 0)
-            //{
-            //    scannedFilePaths = new List<string>();
-            //}
-            //else
-            //{
-            //    scannedFilePaths = new List<string>();
-            //    // ToDo: Optimize. Can we at least make it an async operation?
-            //    foreach (ScannedFile scannedFile in _scannedFiles.ListData().AsEnumerable())
-            //    {
-            //        // C:\Foo\Bar
-            //        // C:\Foo\BarFoo
-            //        // Both will be returned, but we only want #1
-            //        foreach(string locationPath in locationPaths)
-            //        {
-            //            if (scannedFile.Path.Equals(locationPath, StringComparison.InvariantCultureIgnoreCase)
-            //                || (scannedFile.Path.StartsWith(locationPath, StringComparison.InvariantCultureIgnoreCase)
-            //                && scannedFile.Path.Length > locationPath.Length 
-            //                && scannedFile.Path[locationPath.Length] == '\\'))
-            //            {
-            //                scannedFilePaths.Add(scannedFile.Path);
-            //            }
-            //        }
-            //    }
-            //}
-
-            //return scannedFilePaths;
         }
 
         /// <summary>

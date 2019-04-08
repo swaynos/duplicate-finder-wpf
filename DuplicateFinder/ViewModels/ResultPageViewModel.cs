@@ -10,6 +10,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Data;
+using System.Windows.Forms;
 using System.Windows.Input;
 
 namespace DuplicateFinder.ViewModels
@@ -19,7 +20,8 @@ namespace DuplicateFinder.ViewModels
         Transparent=0x0,
         DarkGray=0x1
     }
-    public class ResultPageViewModel : BindableBase
+
+    public class ResultPageViewModel : BaseViewModel
     {
         private string _searchFilter;
         private ILogger _logger;
@@ -32,7 +34,7 @@ namespace DuplicateFinder.ViewModels
 
         public CollectionViewSource DuplicatesViewSource { get; set; }
 
-        public ICommand Loaded { get; set; }
+        public IAsyncCommand PageLoaded { get; set; }
 
         public IAsyncCommand Preview { get; set; }
 
@@ -73,28 +75,71 @@ namespace DuplicateFinder.ViewModels
             }
         }
 
-        public ResultPageViewModel() : this(LogManager.GetCurrentClassLogger(), new Process(), new RecycleFile())
+        public ResultPageViewModel() : this(LogManager.GetCurrentClassLogger(), new Process(), new RecycleFile(), Application.UserAppDataPath, null)
         {
         }
 
-        internal ResultPageViewModel(ILogger logger, IProcess process, IRecycleFile recycleFile)
+        internal ResultPageViewModel(
+            ILogger logger, 
+            IProcess process, 
+            IRecycleFile recycleFile, 
+            string userAppDataPath,
+            IScannedFileStore scannedFileStore) : base(scannedFileStore, userAppDataPath)
         {
             _logger = logger;
             _process = process;
             _recycle = AsyncCommand.Create(() => RecycleSelectionAsync());
-            _preview = AsyncCommand.Create(() => PreviewSelection(), false);
+            _preview = AsyncCommand.Create(() => PreviewSelectionAsync(), false);
             _recycleFile = recycleFile;
+            _userAppDataPath = userAppDataPath;
 
             Duplicates = new ObservableCollection<ScanResult>();
             DuplicatesViewSource = new CollectionViewSource();
             DuplicatesViewSource.Source = Duplicates;
-            Loaded = DelegateCommand.Create(ToggleButtons);
+            PageLoaded = AsyncCommand.Create(() => PageLoadedAsync());
             Recycle = _recycle;
             Preview = _preview;
             SelectedItemsChangedCommand = DelegateCommand.Create(ToggleButtons);
         }
 
-        private async Task PreviewSelection()
+        /// <summary>
+        /// Takes the scanned files and adds them to the <see cref="Duplicates"/> collection. 
+        /// The ScannedFiles will be sorted by Hash before being added to the ViewModel.
+        /// Internally exposed for unit testing.
+        /// It is assumed that <paramref name="scannedFiles"/> is sorted by Hash before calling.
+        /// </summary>
+        /// <param name="scannedFiles">The scanned files to add</param>
+        internal void AddScannedFiles(List<ScannedFile> scannedFiles)
+        {
+            byte[] previousHash = null;
+            BackgroundColor color = BackgroundColor.Transparent;
+            ScannedFileHashComparer comparer = new ScannedFileHashComparer();
+
+            foreach (ScannedFile scannedFile in scannedFiles)
+            {
+                // If the hash is not same as the previous hash flip the same color
+                if (previousHash != null && !comparer.Equals(previousHash, scannedFile.Hash))
+                {
+                    // If there are ever more than two BackgroundColor types, this flipping logic
+                    // will need to be revisited.
+                    color = 1 - color;
+                }
+                ScanResult scanResult = new ScanResult()
+                {
+                    FilePath = scannedFile.Path,
+                    Hash = scannedFile.Hash,
+                    Background = color.ToString(),
+                    IsSelected = false
+                };
+                Duplicates.Add(scanResult);
+                previousHash = scannedFile.Hash;
+            }
+        }
+
+        /// <summary>
+        /// Call <see cref="IProcess.StartAsync(string)"/> for each selected duplicate file.
+        /// </summary>
+        private async Task PreviewSelectionAsync()
         {
             var selectedDuplicates = Duplicates.Where(t => t.IsSelected).Select(t => t.FilePath);
             foreach (string file in selectedDuplicates)
@@ -122,6 +167,24 @@ namespace DuplicateFinder.ViewModels
         }
 
         /// <summary>
+        /// Logic run when the page is loaded.
+        /// </summary>
+        private async Task PageLoadedAsync()
+        {
+            if (_scannedFileStore != null)
+            {
+                // Save the scan results
+                await _scannedFileStore.SaveScannedFileStoreToFileAsync(GetDataFilePath());
+
+                // Load the view model with the scanned file data
+                // AddScannedFiles() must be run on the UI Thread
+                AddScannedFiles(await _scannedFileStore.ListDuplicateFilesAsync());
+            }
+
+            ToggleButtons();
+        }
+
+        /// <summary>
         /// Handles the logic to enable and disable buttons based on the state of the Model
         /// </summary>
         private void ToggleButtons()
@@ -130,43 +193,6 @@ namespace DuplicateFinder.ViewModels
             {
                 _preview.IsEnabled = true;
                 _recycle.IsEnabled = true;
-            }
-        }
-
-        /// <summary>
-        /// Takes the scanned files and adds them to the <see cref="Duplicates"/> collection. 
-        /// The ScannedFiles will be sorted by Hash before being added to the ViewModel.
-        /// It is assumed that <paramref name="scannedFiles"/> is sorted by Hash before calling.
-        /// </summary>
-        /// <param name="scannedFiles">The scanned files to add</param>
-        /// <exception cref="NullReferenceException">Will return a NullReferenceException if <paramref name="scannedFiles"/> is null.</exception>
-        internal void AddScannedFiles(List<ScannedFile> scannedFiles)
-        {
-            if (scannedFiles == null)
-                throw new NullReferenceException();
-
-            byte[] previousHash = null;
-            BackgroundColor color = BackgroundColor.Transparent;
-            ScannedFileHashComparer comparer = new ScannedFileHashComparer();
-
-            foreach (ScannedFile scannedFile in scannedFiles)
-            {
-                // If the hash is not same as the previous hash flip the same color
-                if (previousHash != null && !comparer.Equals(previousHash, scannedFile.Hash))
-                {
-                    // If there are ever more than two BackgroundColor types, this flipping logic
-                    // will need to be revisited.
-                    color = 1 - color;
-                }
-                ScanResult scanResult = new ScanResult()
-                {
-                    FilePath = scannedFile.Path,
-                    Hash = scannedFile.Hash,
-                    Background = color.ToString(),
-                    IsSelected = false
-                };
-                Duplicates.Add(scanResult);
-                previousHash = scannedFile.Hash;
             }
         }
     }

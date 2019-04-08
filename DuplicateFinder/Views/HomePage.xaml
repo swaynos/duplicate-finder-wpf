@@ -49,6 +49,7 @@
                     HorizontalAlignment="Center" Command="{Binding Scan}">Scan</Button>
         </Grid>
     </Grid>
+    
     <i:Interaction.Triggers>
         <i:EventTrigger EventName="Loaded">
             <i:InvokeCommandAction Command="{Binding PageLoaded}"/>
