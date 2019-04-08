@@ -18,6 +18,7 @@ namespace DuplicateFinder
         {
             _logger = logger;
             DispatcherUnhandledException += OnDispatcherUnhandledException;
+            Startup += Application_Startup;
         }
 
         public App() : this(LogManager.GetCurrentClassLogger())
