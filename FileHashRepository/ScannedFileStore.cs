@@ -212,21 +212,6 @@ namespace FileHashRepository
         }
 
         /// <summary>
-        /// Helper method which wraps _fileSystem.Directory.GetFiles() in an async Task
-        /// </summary>
-        private async Task<string[]> GetFilesAsync(string locationPath, string searchPattern, SearchOption searchOption)
-        {
-            Task<string[]> task = Task.Run(() =>
-            {
-               return _fileSystem.Directory.GetFiles(locationPath, searchPattern, searchOption);
-            });
-            return await task;
-
-            // The only way we reach here is if an exception occured
-            throw task.Exception;
-        }
-
-        /// <summary>
         /// Returns all scanned files which have at least one duplicate.
         /// </summary>
         /// <returns>The List of ScannedFile entities with duplicates.</returns>
@@ -240,7 +225,7 @@ namespace FileHashRepository
         /// </summary>
         /// <param name="filePath">The location to add to the storage backend</param>
         /// <param name="progress">The IProgress to update the progress on. 
-        /// Progress is updated with the following formula index * 100 / totalCount</param>
+        /// Progress is updated with the following formula: index * 100 / totalCount</param>
         internal async Task ScanFile(string filePath, IProgress<int> progress, int index, int totalCount)
         {
             if (_fileSystem.File.Exists(filePath))
@@ -254,8 +239,6 @@ namespace FileHashRepository
             }
             if (progress != null)
             {
-                // This is not an atomic operation (++tempCound and Report)
-                // To ensure seamless Reports we need to mutex lock
                 progress.Report(index * 100 / totalCount);
             }
         }
@@ -274,6 +257,21 @@ namespace FileHashRepository
             {
                 progress.Report(index * 100 / totalCount);
             }
+        }
+
+        /// <summary>
+        /// Helper method which wraps _fileSystem.Directory.GetFiles() in an async Task
+        /// </summary>
+        private async Task<string[]> GetFilesAsync(string locationPath, string searchPattern, SearchOption searchOption)
+        {
+            Task<string[]> task = Task.Run(() =>
+            {
+                return _fileSystem.Directory.GetFiles(locationPath, searchPattern, searchOption);
+            });
+            return await task;
+
+            // The only way we reach here is if an exception occured
+            throw task.Exception;
         }
     }
 }
