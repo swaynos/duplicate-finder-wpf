@@ -69,7 +69,10 @@ namespace FileHashRepository
         public async Task<List<string>> ListScannedLocationsAsync()
         {
             // ToDo: Not an async method
-            return _scannedLocations.ListData().Select(t => t.Path).ToList();
+            return await Task.Run(() =>
+            {
+                return _scannedLocations.ListData().Select(t => t.Path).ToList();
+            });
         }
 
         /// <summary>
@@ -99,11 +102,13 @@ namespace FileHashRepository
         /// <returns>The number of ScannedFiles removed</returns> // ToDo: This is unnecessary
         public async Task<int> RemoveScannedFilesByFilePathAsync(string filePath)
         {
-            // ToDo: Not an async method
-            IQueryable<ScannedFile> scannedFiles = _scannedFiles.ListData().Where(t => t.Path.Equals(filePath));
-            int removedRecords =  scannedFiles.Count(); 
-            _scannedFiles.PurgeData(scannedFiles);
-            return removedRecords;
+            return await Task.Run(() =>
+            {
+                IQueryable<ScannedFile> scannedFiles = _scannedFiles.ListData().Where(t => t.Path.Equals(filePath));
+                int removedRecords = scannedFiles.Count();
+                _scannedFiles.PurgeData(scannedFiles);
+                return removedRecords;
+            });
         }
 
         /// <summary>
@@ -113,11 +118,13 @@ namespace FileHashRepository
         /// <returns>A list of ScannedFile entities</returns>
         public async Task<List<ScannedFile>> ReturnDuplicatesAsync()
         {
-            // ToDo: Not an async method
-            return _scannedFiles.ListData()
+            return await Task.Run(() =>
+            {
+                return _scannedFiles.ListData()
                 .GroupBy(t => t.Hash, new ScannedFileHashComparer())
                 .Where(t => t.Count() > 1)
                 .SelectMany(group => group).ToList();
+            });
         }
 
         // ToDo: Unit Test that the entire collection is returned
@@ -192,23 +199,26 @@ namespace FileHashRepository
             else
             {
                 scannedFilesList = new List<ScannedFile>();
-                // ToDo: Optimize. Can we at least make it an async operation?
-                foreach (ScannedFile scannedFile in _scannedFiles.ListData().AsEnumerable())
+                Task task = Task.Run(() =>
                 {
-                    // C:\Foo\Bar\File.txt
-                    // C:\Foo\BarFoo\File.txt
-                    // We only want #1 with C:\Foo\Bar input
-                    foreach (string locationPath in locationPaths)
+                    foreach (ScannedFile scannedFile in _scannedFiles.ListData().AsEnumerable())
                     {
-                        if (scannedFile.Path.Equals(locationPath, StringComparison.InvariantCultureIgnoreCase)
-                            || (scannedFile.Path.StartsWith(locationPath, StringComparison.InvariantCultureIgnoreCase)
-                            && scannedFile.Path.Length > locationPath.Length
-                            && scannedFile.Path[locationPath.Length] == '\\'))
+                        // C:\Foo\Bar\File.txt
+                        // C:\Foo\BarFoo\File.txt
+                        // We only want #1 with C:\Foo\Bar input
+                        foreach (string locationPath in locationPaths)
                         {
-                            scannedFilesList.Add(scannedFile);
+                            if (scannedFile.Path.Equals(locationPath, StringComparison.InvariantCultureIgnoreCase)
+                                || (scannedFile.Path.StartsWith(locationPath, StringComparison.InvariantCultureIgnoreCase)
+                                && scannedFile.Path.Length > locationPath.Length
+                                && scannedFile.Path[locationPath.Length] == '\\'))
+                            {
+                                scannedFilesList.Add(scannedFile);
+                            }
                         }
                     }
-                }
+                });
+                await task;
             }
             return scannedFilesList.AsQueryable();
         }
@@ -236,23 +246,26 @@ namespace FileHashRepository
             else
             {
                 scannedLocationsList = new List<ScannedLocation>();
-                // ToDo: Optimize. Can we at least make it an async operation?
-                foreach (ScannedLocation scannedLocation in _scannedLocations.ListData().AsEnumerable())
+                Task task = Task.Run(() =>
                 {
-                    // C:\Foo\Bar
-                    // C:\Foo\BarFoo
-                    // We only want #1 with C:\Foo\Bar input
-                    foreach (string locationPath in locationPaths)
+                    foreach (ScannedLocation scannedLocation in _scannedLocations.ListData().AsEnumerable())
                     {
-                        if (scannedLocation.Path.Equals(locationPath, StringComparison.InvariantCultureIgnoreCase)
-                            || (scannedLocation.Path.StartsWith(locationPath, StringComparison.InvariantCultureIgnoreCase)
-                            && scannedLocation.Path.Length > locationPath.Length
-                            && scannedLocation.Path[locationPath.Length] == '\\'))
+                        // C:\Foo\Bar
+                        // C:\Foo\BarFoo
+                        // We only want #1 with C:\Foo\Bar input
+                        foreach (string locationPath in locationPaths)
                         {
-                            scannedLocationsList.Add(scannedLocation);
+                            if (scannedLocation.Path.Equals(locationPath, StringComparison.InvariantCultureIgnoreCase)
+                                || (scannedLocation.Path.StartsWith(locationPath, StringComparison.InvariantCultureIgnoreCase)
+                                && scannedLocation.Path.Length > locationPath.Length
+                                && scannedLocation.Path[locationPath.Length] == '\\'))
+                            {
+                                scannedLocationsList.Add(scannedLocation);
+                            }
                         }
                     }
-                }
+                });
+                await task;
             }
             return scannedLocationsList.AsQueryable();
         }

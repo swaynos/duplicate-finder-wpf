@@ -12,15 +12,17 @@ namespace FileHashRepository
         public byte[] Hash { get; set; }
         public string Path { get; set; }
         public string Name { get; set; }
+        public long Length { get; set; }
 
         public override bool Equals(object obj)
         {
             ScannedFileHashComparer comparer = new ScannedFileHashComparer();
             ScannedFile otherScannedFile = obj as ScannedFile;
 
-            bool isEqual = this.Name.Equals(otherScannedFile.Name);
-            isEqual &= this.Path.Equals(otherScannedFile.Path);
-            isEqual &= comparer.Equals(this.Hash, otherScannedFile.Hash);
+            bool isEqual = this.Name.Equals(otherScannedFile.Name)
+                && this.Path.Equals(otherScannedFile.Path)
+                && this.Length.Equals(otherScannedFile.Length)
+                && comparer.Equals(this.Hash, otherScannedFile.Hash);
 
             return isEqual;
         }

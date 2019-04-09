@@ -86,7 +86,6 @@
     <Compile Include="ScannedFileStore.cs" />
     <Compile Include="Utilities\FileHash.cs" />
     <Compile Include="Utilities\ScannedFileHashComparer.cs" />
-    <Compile Include="Utilities\SqlQuery.cs" />
   </ItemGroup>
   <ItemGroup>
     <BootstrapperPackage Include=".NETFramework,Version=v4.5.2">
