@@ -133,6 +133,7 @@ namespace FileHashRepository
                 files.AddRange(await GetFilesAsync(locationPath, "*.*", SearchOption.AllDirectories));
             }
 
+            // ToDo: 2 passes first on length and then on Hash where Length equals (priority 2);
             int totalCount = files.Count;
             for (int i = 0; i < files.Count; i++)
             {
@@ -158,6 +159,7 @@ namespace FileHashRepository
         /// <param name="locationPath">The path to scan</param>
         public async Task RescanLocationsAsync(List<string> locationPaths, IProgress<int> progress)
         {
+            // ToDo: Refactor (priority 3)
             FileHash fileHash = new FileHash(_fileSystem);
 
             List<string> storedFiles = new List<string>();

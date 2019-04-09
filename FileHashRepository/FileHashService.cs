@@ -68,7 +68,6 @@ namespace FileHashRepository
         /// <returns>A List of strings which contain the ScannedLocation.Path's</returns>
         public async Task<List<string>> ListScannedLocationsAsync()
         {
-            // ToDo: Not an async method
             return await Task.Run(() =>
             {
                 return _scannedLocations.ListData().Select(t => t.Path).ToList();
@@ -118,6 +117,7 @@ namespace FileHashRepository
         /// <returns>A list of ScannedFile entities</returns>
         public async Task<List<ScannedFile>> ReturnDuplicatesAsync()
         {
+            // ToDo: Modify to group by length first, and then Hash (priority 1)
             return await Task.Run(() =>
             {
                 return _scannedFiles.ListData()
